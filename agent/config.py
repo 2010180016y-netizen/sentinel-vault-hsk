@@ -49,17 +49,35 @@ MARKETS: Dict[str, Market] = {
     "WBTC": Market(Addresses.wbtc, "WBTC", 8, 3000),
 }
 
-# Only pools that actually exist on HSKSwap today (probed 2026-11-24, block 30,575,819).
-# WHSK/USDC 0.3% holds ~$0.08 of liquidity and WHSK/USDC 1% is empty: excluded on purpose.
-LIQUID_MARKETS = ("WHSK",)
+# Measured 2026-11-24 (block 30,577,582) by reading each pool's liquidity() and slot0() and by quoting a
+# 120 USDT buy through QuoterV2. Depth is the quote-side value of the in-range liquidity; `both_sides`
+# counts the asset side too. Kept as data, not prose, so the agent can rank markets honestly instead of
+# pretending all three are equally tradable.
+MARKET_STATS: Dict[str, dict] = {
+    "WHSK": {"pool": "0x4ff515761864e7838B0AdB8b5b2B8B7A068905dC", "quote_depth_usd": 419_423,
+             "both_sides_usd": 838_845, "impact_bps_at_120": 33.0, "price_usd": 0.080768},
+    "WETH": {"pool": "0xb92b79ed6b370D5cFee2E14B1D0983C258304C16", "quote_depth_usd": 41_814,
+             "both_sides_usd": 83_629, "impact_bps_at_120": 58.7, "price_usd": 1703.99},
+    "WBTC": {"pool": "0xd9EA2cE468957Ba49cCC38C4758Ed6ecD561449A", "quote_depth_usd": 45_339,
+             "both_sides_usd": 90_677, "impact_bps_at_120": 56.3, "price_usd": 61_830.30},
+}
+
+# Only pools that exist on HSKSwap today are listed. WHSK/USDC 0.3% holds ~$0.08 of liquidity and
+# WHSK/USDC 1% is empty, so both are excluded on purpose. WETH and WBTC *are* tradable — they are simply
+# thinner and pricier to cross (see MARKET_STATS), which the strategy accounts for rather than hides.
+LIQUID_MARKETS = ("WHSK", "WETH", "WBTC")
+DEFAULT_MARKET = "WHSK"
 
 
 @dataclass(frozen=True)
 class RiskPolicy:
-    """Mirror of SentinelVault.Policy. Kept in sync by tests/test_policy_mirror.py."""
+    """Mirror of SentinelVault.Policy. Kept in sync by the shared table in test/fixtures/."""
 
+    # min_edge_bps is the on-chain floor for a *claim on entry*. It is set to the measured round-trip cost
+    # (2 x 30bp fee + 33bp impact in + 33bp impact out = 126bp) plus a 20bp margin, so "the vault refuses
+    # anything claiming less than the cost of crossing" is true on-chain, not just in the agent's head.
+    min_edge_bps: int = 146
     max_slippage_bps: int = 150
-    min_edge_bps: int = 80
     max_spot_twap_deviation_bps: int = 500
     max_drawdown_bps: int = 1500
     twap_window: int = 600
@@ -70,6 +88,19 @@ class RiskPolicy:
 
     def with_overrides(self, **kw) -> "RiskPolicy":
         return replace(self, **kw)
+
+    def as_dict(self) -> dict:
+        return {
+            "min_edge_bps": self.min_edge_bps,
+            "max_slippage_bps": self.max_slippage_bps,
+            "max_spot_twap_deviation_bps": self.max_spot_twap_deviation_bps,
+            "max_drawdown_bps": self.max_drawdown_bps,
+            "twap_window": self.twap_window,
+            "cooldown_s": self.cooldown_s,
+            "max_slices": self.max_slices,
+            "max_trade_notional": self.max_trade_notional,
+            "max_daily_notional": self.max_daily_notional,
+        }
 
 
 @dataclass(frozen=True)
@@ -113,6 +144,9 @@ class Settings:
     live: bool = False
     vault: str = ""
     state_dir: str = "state"
+    # Live refusals are written on-chain as well, so "did nothing because the hurdle was not met" is
+    # evidence and not an absence. Off by default for paper runs (there is nothing to sign against).
+    record_no_trade: bool = True
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -121,6 +155,7 @@ class Settings:
             live=os.environ.get("SENTINEL_LIVE", "0") == "1",
             vault=os.environ.get("SENTINEL_VAULT", ""),
             state_dir=os.environ.get("SENTINEL_STATE_DIR", "state"),
+            record_no_trade=os.environ.get("SENTINEL_RECORD_NO_TRADE", "1") != "0",
         )
 
 

@@ -2,8 +2,8 @@
 
     python scripts/run_paper.py --cycles 6 --interval 30
 
-Paper only: nothing is signed, nothing is sent. `--live` is intentionally absent; live execution
-lives in scripts/execute_intent.py and requires SENTINEL_LIVE=1 plus both keys in the environment.
+Paper only: nothing is signed, nothing is sent. `--live` is intentionally absent; the live path lives in
+`scripts/execute_intent.py` and requires SENTINEL_LIVE=1 plus both keys in the environment.
 """
 
 from __future__ import annotations
@@ -38,19 +38,21 @@ def main() -> int:
         ledger.open_with(a.capital)
 
     agent = SentinelAgent(settings, ledger=ledger)
-    print(f"strategy={agent.strategy.name} hash={agent.strategy_hash[:14]}… mode=paper")
+    print(f"strategy={agent.strategy.name} hash={agent.strategy_hash[:14]}… mode=paper "
+          f"size={agent.controls.size_quote:.0f} USDT")
     for i, rec in enumerate(agent.run(cycles=a.cycles, sleep_s=a.interval), start=1):
         m = rec["features"]
         print(f"[{i}/{a.cycles}] {rec['action']:<4} edge {rec['edge_bps']:>6.0f}bp / hurdle {rec['hurdle_bps']:>5.0f}bp "
               f"| dev {m.get('twap_dev_bps', 0):>+6.0f}bp rsi {m.get('rsi', 0):>4.0f} "
-              f"| {'executed' if rec['executed'] else 'refused'}")
+              f"| cost {m.get('round_trip_cost_bps', 0):>5.0f}bp | {'executed' if rec['executed'] else 'refused'}")
         ledger.save(a.state)
 
     s = agent.snapshot()
     mt = s["metrics"]
     print("\n--- summary ---")
     print(f"equity {mt['equity']:.4f} USDT · trades {mt['trades']} · fees {mt['fees_paid_quote']:.4f} · "
-          f"no-trade {mt['no_trade_decisions']} · maxDD {mt['max_drawdown_bps']:.0f}bp")
+          f"no-trade {mt['no_trade_decisions']} · maxDD {mt['max_drawdown_bps']:.0f}bp · "
+          f"avg execution {mt['avg_execution_edge_bps']:+.1f}bp/leg")
     ledger.save(a.state)
     print(f"ledger -> {a.state}")
     return 0

@@ -39,7 +39,7 @@ contract SentinelVaultTest is Test {
     function setUp() public {
         usdt = new MockERC20("Tether USD", "USDT", 6);
         whsk = new MockERC20("Wrapped HSK", "WHSK", 18);
-        pool = new MockV3Pool(TICK, TICK);
+        pool = new MockV3Pool(TICK + 200, TICK); // spot 200bp above TWAP: a real dislocation to trade against
         router = new MockSwapRouter02();
         factory = new MockFactory();
         factory.setPool(address(whsk), address(usdt), FEE, address(pool));
@@ -47,17 +47,7 @@ contract SentinelVaultTest is Test {
         strategy = vm.addr(strategyPk);
         risk = vm.addr(riskPk);
 
-        SentinelVault.Policy memory p = SentinelVault.Policy({
-            maxSlippageBps: 100, // 1% vs TWAP
-            minEdgeBps: 80, // declared edge must clear 80 bps
-            maxSpotTwapDeviationBps: 300,
-            maxDrawdownBps: 1500,
-            twapWindow: 600,
-            cooldown: 60,
-            maxSlices: 4,
-            maxTradeNotional: MAX_TRADE,
-            maxDailyNotional: MAX_DAILY
-        });
+        SentinelVault.Policy memory p = _policy();
 
         vault = new SentinelVault(owner, address(router), address(factory), address(usdt), strategy, risk, p);
 
@@ -78,6 +68,20 @@ contract SentinelVaultTest is Test {
         // the router needs inventory to pay out
         whsk.mint(address(router), 1_000_000e18);
         usdt.mint(address(router), 10_000e6);
+    }
+
+    function _policy() internal pure returns (SentinelVault.Policy memory) {
+        return SentinelVault.Policy({
+            maxSlippageBps: 100, // 1% vs TWAP
+            minEdgeBps: 80, // declared edge must clear 80 bps
+            maxSpotTwapDeviationBps: 300,
+            maxDrawdownBps: 1500,
+            twapWindow: 600,
+            cooldown: 60,
+            maxSlices: 4,
+            maxTradeNotional: MAX_TRADE,
+            maxDailyNotional: MAX_DAILY
+        });
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -140,6 +144,138 @@ contract SentinelVaultTest is Test {
         return vault.executeIntent(it, s1, s2);
     }
 
+    function _fairOutAt(int24 tick, uint256 amountIn, bool buy) internal view returns (uint256) {
+        return TwapLib.quoteAtTick(
+            tick, amountIn, buy ? address(usdt) : address(whsk), buy ? address(whsk) : address(usdt)
+        );
+    }
+
+    function _sigOn(SentinelVault v, uint256 pk, SentinelVault.Intent memory it)
+        internal
+        view
+        returns (bytes memory)
+    {
+        (uint8 v_, bytes32 r, bytes32 s) = vm.sign(pk, v.hashIntent(it));
+        return abi.encodePacked(r, s, v_);
+    }
+
+    function _selectorFor(string memory expect) internal pure returns (bytes4) {
+        bytes32 h = keccak256(bytes(expect));
+        if (h == keccak256("EDGE_BELOW_HURDLE")) return SentinelVault.EdgeBelowHurdle.selector;
+        if (h == keccak256("SLIPPAGE_WINDOW")) return SentinelVault.SlippageTooWide.selector;
+        if (h == keccak256("MIN_OUT_ABOVE_FAIR")) return SentinelVault.MinOutAboveFair.selector;
+        if (h == keccak256("TRADE_TOO_LARGE")) return SentinelVault.TradeTooLarge.selector;
+        if (h == keccak256("EXCEEDS_INTENT_CAP")) return SentinelVault.ExceedsIntentCap.selector;
+        if (h == keccak256("SPOT_DEVIATION")) return SentinelVault.PriceDeviated.selector;
+        if (h == keccak256("DAILY_LIMIT")) return SentinelVault.DailyLimitExceeded.selector;
+        revert("unknown expectation in the shared table");
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Cross-language parity: the same table, read by the contract here and by the Python mirror
+    // ---------------------------------------------------------------------------------------------
+
+    /// @dev `test/fixtures/policy_scenarios.json` is the single source of truth for what each policy
+    ///      predicate must decide. The Python mirror (`tests/test_policy_mirror.py`) reads the same file
+    ///      and must reach the same verdict, so the two implementations cannot drift apart silently.
+    function test_SharedPolicyTable() public {
+        string memory json = vm.readFile("test/fixtures/policy_scenarios.json");
+        int24 baseTick = int24(vm.parseJsonInt(json, ".tick"));
+        uint256 n = vm.parseJsonUint(json, ".count");
+        assertGt(n, 0, "shared table must not be empty");
+
+        for (uint256 i; i < n; ++i) {
+            string memory at = string.concat(".scenarios[", vm.toString(i), "]");
+            _runSharedScenario(
+                vm.parseJsonString(json, string.concat(at, ".id")),
+                baseTick,
+                vm.parseJsonUint(json, string.concat(at, ".amountIn")),
+                vm.parseJsonUint(json, string.concat(at, ".minOutBpsOfFair")),
+                uint16(vm.parseJsonUint(json, string.concat(at, ".declaredEdgeBps"))),
+                uint64(vm.parseJsonUint(json, string.concat(at, ".maxNotionalQuote"))),
+                int24(int256(vm.parseJsonInt(json, string.concat(at, ".spotOffsetTicks")))),
+                uint64(vm.parseJsonUint(json, string.concat(at, ".preSpendQuote"))),
+                uint64(vm.parseJsonUint(json, string.concat(at, ".maxDailyNotional"))),
+                vm.parseJsonString(json, string.concat(at, ".expect"))
+            );
+        }
+    }
+
+    function _runSharedScenario(
+        string memory id,
+        int24 baseTick,
+        uint256 amountIn,
+        uint256 minOutBps,
+        uint16 declaredEdge,
+        uint64 intentCap,
+        int24 spotOffset,
+        uint64 preSpend,
+        uint64 dailyCap,
+        string memory expect
+    ) internal {
+        SentinelVault.Policy memory p = _policy();
+        p.maxDailyNotional = dailyCap;
+        SentinelVault v =
+            new SentinelVault(owner, address(router), address(factory), address(usdt), strategy, risk, p);
+        vm.startPrank(owner);
+        v.setMarket(address(whsk), FEE, true);
+        v.registerStrategy(STRATEGY);
+        v.unpause();
+        usdt.mint(owner, 5_000e6);
+        usdt.approve(address(v), type(uint256).max);
+        v.deposit(address(usdt), 5_000e6);
+        vm.stopPrank();
+
+        pool.setSpot(baseTick + spotOffset);
+        uint64 nonce;
+        if (preSpend > 0) {
+            uint256 preFair = _fairOutAt(baseTick, preSpend, true);
+            router.setNextAmountOut(preFair);
+            SentinelVault.Intent memory pre = SentinelVault.Intent({
+                tokenIn: address(usdt),
+                tokenOut: address(whsk),
+                fee: FEE,
+                amountIn: uint128(preSpend),
+                minAmountOut: uint128((preFair * 9_990) / 10_000),
+                declaredEdgeBps: 120,
+                strategyHash: STRATEGY,
+                parentId: bytes32(0),
+                nonce: nonce,
+                deadline: uint64(block.timestamp + 300),
+                maxNotionalQuote: preSpend
+            });
+            v.executeIntent(pre, _sigOn(v, strategyPk, pre), _sigOn(v, riskPk, pre));
+            nonce += 1;
+        }
+
+        uint256 fair = _fairOutAt(baseTick, amountIn, true);
+        SentinelVault.Intent memory it = SentinelVault.Intent({
+            tokenIn: address(usdt),
+            tokenOut: address(whsk),
+            fee: FEE,
+            amountIn: uint128(amountIn),
+            minAmountOut: uint128((fair * minOutBps) / 10_000),
+            declaredEdgeBps: declaredEdge,
+            strategyHash: STRATEGY,
+            parentId: bytes32(0),
+            nonce: nonce,
+            deadline: uint64(block.timestamp + 300),
+            maxNotionalQuote: intentCap
+        });
+        router.setNextAmountOut(fair);
+        bytes memory s1 = _sigOn(v, strategyPk, it);
+        bytes memory s2 = _sigOn(v, riskPk, it);
+
+        if (keccak256(bytes(expect)) == keccak256("OK")) {
+            v.executeIntent(it, s1, s2);
+            assertEq(v.tradeCount(), preSpend > 0 ? 2 : 1, id);
+        } else {
+            vm.expectRevert(_selectorFor(expect));
+            v.executeIntent(it, s1, s2);
+        }
+        pool.setSpot(baseTick);
+    }
+
     // ---------------------------------------------------------------------------------------------
     // happy paths
     // ---------------------------------------------------------------------------------------------
@@ -182,7 +318,7 @@ contract SentinelVaultTest is Test {
 
         vm.warp(block.timestamp + 120); // clear the cooldown
         uint256 minOut = (fairSell * 99) / 100;
-        uint256 out = _exec(_sellIntent(uint128(fairBuy), minOut, 100, 2));
+        uint256 out = _exec(_sellIntent(uint128(fairBuy), minOut, 0, 2));
 
         assertEq(out, better);
         assertEq(vault.tradeCount(), 2);
@@ -200,9 +336,38 @@ contract SentinelVaultTest is Test {
 
     function test_NoTradeDecisionIsRecorded() public {
         vm.expectEmit(true, false, false, true, address(vault));
-        emit SentinelVault.NoTradeDecision(STRATEGY, 30, keccak256("hurdle"), 7);
+        emit SentinelVault.NoTradeDecision(STRATEGY, 30, 113, keccak256("hurdle"), 7);
         vm.prank(strategy);
-        vault.recordNoTrade(STRATEGY, 30, keccak256("hurdle"), 7);
+        vault.recordNoTrade(STRATEGY, 30, 113, keccak256("hurdle"), 7);
+    }
+
+    /// @dev A refusal and a trade share one nonce register, so a decision cannot be logged twice or
+    ///      replayed, and the same nonce cannot later be spent on a different decision.
+    function test_NoTradeConsumesNonce() public {
+        vm.startPrank(strategy);
+        vault.recordNoTrade(STRATEGY, 30, 113, keccak256("hurdle"), 9);
+        vm.expectRevert(SentinelVault.NonceUsed.selector);
+        vault.recordNoTrade(STRATEGY, 30, 113, keccak256("hurdle"), 9);
+        vm.stopPrank();
+
+        // the same nonce is also gone for a trade
+        uint256 fair = _fairOut(10e6, true);
+        router.setNextAmountOut(fair);
+        vm.warp(block.timestamp + 120);
+        _expectRevert(SentinelVault.NonceUsed.selector, _intent(10e6, fair, 120, 9));
+    }
+
+    /// @dev A refusal may not claim it was judged against a softer hurdle than the vault enforces.
+    function test_NoTradeRejectsHurdleBelowFloor() public {
+        vm.prank(strategy);
+        vm.expectRevert(SentinelVault.EdgeBelowHurdle.selector);
+        vault.recordNoTrade(STRATEGY, 30, 40, keccak256("hurdle"), 11);
+    }
+
+    function test_NoTradeRequiresRegisteredStrategy() public {
+        vm.prank(strategy);
+        vm.expectRevert(SentinelVault.StrategyNotRegistered.selector);
+        vault.recordNoTrade(keccak256("shadow"), 30, 113, keccak256("hurdle"), 12);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -345,7 +510,7 @@ contract SentinelVaultTest is Test {
         uint256 fairSell = _fairOut(qty, false);
         assertGt(fairSell, MAX_TRADE, "exit notional exceeds the per-trade cap");
         router.setNextAmountOut(fairSell);
-        _exec(_sellIntent(uint128(qty), (fairSell * 99) / 100, 100, 9));
+        _exec(_sellIntent(uint128(qty), (fairSell * 99) / 100, 0, 9));
         (, uint256 cost) = vault.positions(address(whsk));
         assertEq(cost, 0);
     }
@@ -377,7 +542,7 @@ contract SentinelVaultTest is Test {
         // price collapses 20% (cap is 15%)
         int24 crashed = TICK - 2231; // ln(0.8)/ln(1.0001)
         pool.setTwap(crashed);
-        pool.setSpot(crashed);
+        pool.setSpot(crashed + 200); // the pool is dislocated again, so the buy reaches the drawdown gate
 
         uint256 eq = vault.equity();
         assertLt(eq, (vault.highWater() * 8500) / 10_000, "drawdown beyond 15%");
@@ -390,7 +555,7 @@ contract SentinelVaultTest is Test {
         // exits are still allowed: sell the position into the quote token
         uint256 fairSell = TwapLib.quoteAtTick(crashed, qty, address(whsk), address(usdt));
         router.setNextAmountOut(fairSell);
-        SentinelVault.Intent memory sell = _sellIntent(uint128(qty), (fairSell * 99) / 100, 100, 4);
+        SentinelVault.Intent memory sell = _sellIntent(uint128(qty), (fairSell * 99) / 100, 0, 4);
         _exec(sell);
         (, uint256 cost) = vault.positions(address(whsk));
         assertEq(cost, 0, "position exited");
@@ -463,10 +628,146 @@ contract SentinelVaultTest is Test {
         vault.unpause();
     }
 
+    /// @dev The edge hurdle is the vault's differentiator: a policy that switches it off must not exist.
+    function test_Revert_SetPolicyTurnsOffEdgeHurdle() public {
+        SentinelVault.Policy memory p = _policy();
+        p.minEdgeBps = 0;
+        vm.prank(owner);
+        vm.expectRevert(SentinelVault.InvalidConfig.selector);
+        vault.setPolicy(p);
+
+        p.minEdgeBps = 5_001; // beyond the plausible-spread ceiling
+        vm.prank(owner);
+        vm.expectRevert(SentinelVault.InvalidConfig.selector);
+        vault.setPolicy(p);
+
+        p.minEdgeBps = 5_000; // the bound itself is legal
+        vm.prank(owner);
+        vault.setPolicy(p);
+        (uint16 maxSlip, uint16 minEdge,,,,,,,) = vault.policy();
+        assertEq(minEdge, 5_000);
+        assertEq(maxSlip, 100);
+    }
+
+    /// @dev Same predicate in the constructor: a vault cannot be born with the gate switched off.
+    function test_Revert_ConstructorRejectsZeroEdgeHurdle() public {
+        SentinelVault.Policy memory p = _policy();
+        p.minEdgeBps = 0;
+        vm.expectRevert(SentinelVault.InvalidConfig.selector);
+        new SentinelVault(owner, address(router), address(factory), address(usdt), strategy, risk, p);
+    }
+
+    function test_Revert_ConstructorRejectsAbsurdCooldown() public {
+        SentinelVault.Policy memory p = _policy();
+        p.cooldown = uint32(8 days);
+        vm.expectRevert(SentinelVault.InvalidConfig.selector);
+        new SentinelVault(owner, address(router), address(factory), address(usdt), strategy, risk, p);
+    }
+
+    function test_OwnerCanCloseParent() public {
+        bytes32 parent = keccak256("owner-close");
+        vm.prank(strategy);
+        vault.openParent(parent, 100e6);
+        vm.prank(owner);
+        vault.closeParent(parent);
+        (,,, bool open) = vault.parents(parent);
+        assertFalse(open);
+    }
+
+    /// @dev Withdrawing the position asset must take its cost basis with it, or the book keeps claiming
+    ///      a position the vault no longer holds and a later sale underflows the basis.
+    function test_WithdrawAssetKeepsPositionBookConsistent() public {
+        uint256 fair = _fairOut(100e6, true);
+        router.setNextAmountOut(fair);
+        _exec(_intent(100e6, fair, 100, 1));
+
+        uint256 half = fair / 2;
+        vm.prank(owner);
+        vault.withdraw(address(whsk), owner, half);
+
+        (uint256 qty, uint256 cost) = vault.positions(address(whsk));
+        assertEq(qty, fair - half);
+        assertApproxEqAbs(cost, 50e6, 2, "half the basis left with half the tokens");
+
+        // the remainder is still sellable without touching the withdrawn part
+        vm.warp(block.timestamp + 120);
+        uint256 fairSell = _fairOut(fair - half, false);
+        router.setNextAmountOut(fairSell);
+        _exec(_sellIntent(uint128(fair - half), (fairSell * 99) / 100, 0, 2));
+        (qty, cost) = vault.positions(address(whsk));
+        assertEq(qty, 0);
+        assertEq(cost, 0);
+    }
+
+    /// @dev An oracle outage must not make the vault unauditable: the trading path fails closed, the
+    ///      reporting view still answers and says the mark is partly cost-basis.
+    function test_StatsSurvivesOracleOutage() public {
+        uint256 fair = _fairOut(100e6, true);
+        router.setNextAmountOut(fair);
+        _exec(_intent(100e6, fair, 120, 1));
+
+        pool.setObserveReverts(true);
+
+        (uint256 eq, bool fullyPriced) = vault.tryEquity();
+        assertFalse(fullyPriced, "flag must say the mark is not a TWAP mark");
+        assertGt(eq, 0);
+
+        SentinelVault.Stats memory s = vault.stats();
+        assertFalse(s.oracleHealthy);
+        assertEq(s.tradeCount, 1);
+
+        vm.expectRevert(SentinelVault.OracleUnavailable.selector);
+        vault.equity();
+    }
+
     function test_StrategyKeyCannotWithdraw() public {
         vm.prank(strategy);
         vm.expectRevert(SentinelVault.NotOwner.selector);
         vault.withdraw(address(usdt), strategy, 1);
+    }
+
+    /// @dev An exit must never be blocked by the claim gate: refusing to reduce risk because the expected
+    ///      move is small is the same trap the per-trade cap had. It still respects the TWAP band.
+    function test_ExitIsNotGatedByEdgeHurdle() public {
+        uint256 fair = _fairOut(100e6, true);
+        router.setNextAmountOut(fair);
+        _exec(_intent(100e6, fair, 120, 1));
+
+        vm.warp(block.timestamp + 120);
+        uint256 fairSell = _fairOut(fair, false);
+        router.setNextAmountOut(fairSell);
+        uint256 out = _exec(_sellIntent(uint128(fair), (fairSell * 99) / 100, 0, 2));
+        assertEq(out, fairSell);
+        (uint256 qty,) = vault.positions(address(whsk));
+        assertEq(qty, 0, "position closed with a zero-edge claim");
+    }
+
+    /// @dev A claim larger than the dislocation the venue was showing is rejected: you cannot claim a move
+    ///      that was not there to capture.
+    function test_Revert_WhenClaimExceedsObservedDislocation() public {
+        uint256 fair = _fairOut(50e6, true);
+        router.setNextAmountOut(fair);
+        pool.setSpot(TICK + 100); // 100bp of dislocation
+        SentinelVault.Intent memory it = _intent(50e6, fair, 120, 1); // but claiming 120bp
+        _expectRevert(SentinelVault.EdgeClaimAboveDislocation.selector, it);
+    }
+
+    /// @dev An exit must not be delayed by a rate limit meant for capital deployment.
+    function test_ExitIsNotBlockedByCooldown() public {
+        uint256 fair = _fairOut(100e6, true);
+        router.setNextAmountOut(fair);
+        _exec(_intent(100e6, fair, 120, 1));
+
+        // same block: an entry would be refused, an exit may still run
+        SentinelVault.Intent memory anotherBuy = _intent(10e6, _fairOut(10e6, true), 120, 2);
+        _expectRevert(SentinelVault.CooldownActive.selector, anotherBuy);
+
+        uint256 fairSell = _fairOut(fair, false);
+        router.setNextAmountOut(fairSell);
+        uint256 out = _exec(_sellIntent(uint128(fair), (fairSell * 99) / 100, 0, 3));
+        assertEq(out, fairSell);
+        (uint256 qty,) = vault.positions(address(whsk));
+        assertEq(qty, 0);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -489,9 +790,10 @@ contract SentinelVaultTest is Test {
         assertApproxEqAbs(vault.equity(), before, 2, "swap at TWAP must not destroy value");
     }
 
-    /// @dev The declared-edge rule is a hard predicate: below the hurdle always reverts.
+    /// @dev The declared-edge rule is a hard predicate: below the hurdle always reverts, and a claim can
+    ///      never exceed the dislocation the pool is actually showing (200bp in this fixture).
     function testFuzz_EdgeHurdleIsMonotonic(uint16 declared) public {
-        declared = uint16(bound(declared, 0, 5000));
+        declared = uint16(bound(declared, 0, 200));
         uint256 fair = _fairOut(10e6, true);
         router.setNextAmountOut(fair);
         SentinelVault.Intent memory it = _intent(10e6, fair, declared, 1);

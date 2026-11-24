@@ -1,0 +1,106 @@
+{
+  "_comment": "Shared policy table. Read by BOTH implementations: test/SentinelVault.t.sol (the Solidity kernel) and tests/test_policy_mirror.py (the off-chain mirror). One table, two implementations, no drift. Values are raw token units (USDT 6dp).",
+  "count": 8,
+  "tick": -301487,
+  "policy": {
+    "maxSlippageBps": 100,
+    "minEdgeBps": 80,
+    "maxSpotTwapDeviationBps": 300,
+    "maxDrawdownBps": 1500,
+    "twapWindow": 600,
+    "cooldown": 60,
+    "maxSlices": 4,
+    "maxTradeNotional": 200000000,
+    "maxDailyNotional": 1000000000
+  },
+  "scenarios": [
+    {
+      "id": "legal_intent_passes",
+      "amountIn": 50000000,
+      "minOutBpsOfFair": 9990,
+      "declaredEdgeBps": 120,
+      "maxNotionalQuote": 200000000,
+      "spotOffsetTicks": 200,
+      "preSpendQuote": 0,
+      "maxDailyNotional": 1000000000,
+      "expect": "OK"
+    },
+    {
+      "id": "edge_below_hurdle",
+      "amountIn": 50000000,
+      "minOutBpsOfFair": 9990,
+      "declaredEdgeBps": 79,
+      "maxNotionalQuote": 200000000,
+      "spotOffsetTicks": 200,
+      "preSpendQuote": 0,
+      "maxDailyNotional": 1000000000,
+      "expect": "EDGE_BELOW_HURDLE"
+    },
+    {
+      "id": "floor_below_slippage_band",
+      "amountIn": 50000000,
+      "minOutBpsOfFair": 9800,
+      "declaredEdgeBps": 120,
+      "maxNotionalQuote": 200000000,
+      "spotOffsetTicks": 200,
+      "preSpendQuote": 0,
+      "maxDailyNotional": 1000000000,
+      "expect": "SLIPPAGE_WINDOW"
+    },
+    {
+      "id": "floor_above_fair_value",
+      "amountIn": 50000000,
+      "minOutBpsOfFair": 10010,
+      "declaredEdgeBps": 120,
+      "maxNotionalQuote": 200000000,
+      "spotOffsetTicks": 200,
+      "preSpendQuote": 0,
+      "maxDailyNotional": 1000000000,
+      "expect": "MIN_OUT_ABOVE_FAIR"
+    },
+    {
+      "id": "above_per_trade_cap",
+      "amountIn": 200000001,
+      "minOutBpsOfFair": 9990,
+      "declaredEdgeBps": 120,
+      "maxNotionalQuote": 400000000,
+      "spotOffsetTicks": 200,
+      "preSpendQuote": 0,
+      "maxDailyNotional": 1000000000,
+      "expect": "TRADE_TOO_LARGE"
+    },
+    {
+      "id": "above_intent_own_cap",
+      "amountIn": 150000000,
+      "minOutBpsOfFair": 9990,
+      "declaredEdgeBps": 120,
+      "maxNotionalQuote": 140000000,
+      "spotOffsetTicks": 200,
+      "preSpendQuote": 0,
+      "maxDailyNotional": 1000000000,
+      "expect": "EXCEEDS_INTENT_CAP"
+    },
+    {
+      "id": "spot_pushed_from_twap",
+      "amountIn": 50000000,
+      "minOutBpsOfFair": 9990,
+      "declaredEdgeBps": 120,
+      "maxNotionalQuote": 200000000,
+      "spotOffsetTicks": 400,
+      "preSpendQuote": 0,
+      "maxDailyNotional": 1000000000,
+      "expect": "SPOT_DEVIATION"
+    },
+    {
+      "id": "daily_budget_spent",
+      "amountIn": 150000000,
+      "minOutBpsOfFair": 9990,
+      "declaredEdgeBps": 120,
+      "maxNotionalQuote": 200000000,
+      "spotOffsetTicks": 200,
+      "preSpendQuote": 200000000,
+      "maxDailyNotional": 300000000,
+      "expect": "DAILY_LIMIT"
+    }
+  ]
+}

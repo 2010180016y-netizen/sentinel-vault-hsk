@@ -93,7 +93,7 @@ contract VaultHandler is Test {
             fee: 3000,
             amountIn: uint128(part),
             minAmountOut: uint128((fair * 99) / 100),
-            declaredEdgeBps: 100,
+            declaredEdgeBps: 0, // exits claim no edge: the claim gate is for entries
             strategyHash: strategy,
             parentId: bytes32(0),
             nonce: ++nonce,
@@ -129,7 +129,7 @@ contract SentinelVaultInvariantTest is Test {
     function setUp() public {
         usdt = new MockERC20("Tether USD", "USDT", 6);
         whsk = new MockERC20("Wrapped HSK", "WHSK", 18);
-        pool = new MockV3Pool(-301_487, -301_487);
+        pool = new MockV3Pool(-301_487 + 200, -301_487); // 200bp of dislocation for the handler to trade
         router = new MockSwapRouter02();
         factory = new MockFactory();
         factory.setPool(address(whsk), address(usdt), 3000, address(pool));
@@ -190,10 +190,12 @@ contract SentinelVaultInvariantTest is Test {
         assertEq(vault.tradeCount(), uint256(handler.okBuys()) + uint256(handler.okSells()));
     }
 
-    /// @notice Every accepted trade cleared the edge hurdle, so the declared sum respects the floor.
+    /// @notice Every *entry* cleared the edge hurdle, and exits never add a claim of their own.
     function invariant_DeclaredEdgeAboveHurdle() public view {
-        if (vault.tradeCount() == 0) return;
-        assertGe(vault.declaredEdgeSumBps(), int256(uint256(vault.tradeCount())) * 80);
+        uint256 buys = handler.okBuys();
+        if (buys == 0) return;
+        assertGe(vault.declaredEdgeSumBps(), int256(buys) * 80);
+        assertLe(vault.declaredEdgeSumBps(), int256(buys) * 100);
     }
 
     /// @notice Equity is never negative and never silently zero while positions exist.

@@ -49,8 +49,16 @@ class PoolState:
 
     @property
     def twap_deviation_bps(self) -> float:
-        """Spot vs TWAP in basis points, signed (positive = spot above TWAP)."""
-        return (self.tick - self.twap_tick) * 100.0  # 1 tick ≈ 1 bp
+        """Spot vs TWAP in basis points, signed (positive = spot above TWAP).
+
+        One tick is 1.0001, i.e. 1bp — so the tick *distance* is the bps figure, not 100x it. The earlier
+        version multiplied by 100, which inflated every dislocation by a factor of 100: a 1-tick drift was
+        reported as 100bp, the on-chain spot-deviation guard (500bp) tripped at 5 ticks, and the signal
+        engine saw dislocations that did not exist. The contract always measured it correctly
+        (`TwapLib.absDiff(spotTick, twapTick) > maxSpotTwapDeviationBps`); only this mirror was wrong.
+        Exact form rather than Δtick*1 so a large move is not understated by the 1.0001^Δ curve.
+        """
+        return (tick_to_price(self.tick - self.twap_tick) - 1.0) * 10_000
 
     def depth_quote(self) -> float:
         """Rough pool depth in quote units, from L and the current price (single-range view)."""
@@ -108,7 +116,6 @@ class DexClient:
         token0 = pool.functions.token0().call()
         token1 = pool.functions.token1().call()
 
-        holding = self.rpc.block_number()
         window = twap_window
         # The oracle can only serve a window it has observations for; shrink until it answers, and
         # if it never does, fail loudly (the vault fails closed the same way).

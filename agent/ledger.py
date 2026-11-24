@@ -1,7 +1,12 @@
 """Trade ledger and performance accounting.
 
 Kept deliberately parallel to the vault's own book-keeping (cost basis, fees in quote units, high
-water mark, win count) so the paper run and the on-chain run can be compared line for line.
+water mark, win count) so the paper run and the on-chain run can be compared line for line. The three
+edge numbers mirror the vault's three exactly:
+
+  * `declared_edge_sum_bps` — claims registered on entries            (SentinelVault.declaredEdgeSumBps)
+  * `realised_edge_sum_bps` — round-trip outcome, settled on exits    (SentinelVault.realizedEdgeSumBps)
+  * `execution_edge_sum_bps` — per-leg result vs TWAP                 (SentinelVault.executionEdgeSumBps)
 """
 
 from __future__ import annotations
@@ -22,7 +27,9 @@ class Position:
 
     @property
     def avg_price(self) -> float:
-        return self.cost_quote / self.qty if self.qty else 0.0
+        """Quote units per whole token (not per raw unit — that was off by 10**decimals)."""
+        whole = self.qty / (10 ** self.decimals)
+        return self.cost_quote / whole if whole else 0.0
 
 
 @dataclass
@@ -36,10 +43,11 @@ class Trade:
     notional_quote: float
     fee_quote: float
     declared_edge_bps: float
-    realised_edge_bps: float
+    realised_edge_bps: float  # round-trip, bps of cost basis (0 until the position is closed)
     reason: str
     tx: str = ""
     equity_after: float = 0.0
+    leg_edge_bps: float = 0.0  # this leg against the pool TWAP (negative = paid to take liquidity)
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -56,7 +64,7 @@ class Ledger:
     realised_pnl: float = 0.0
     fees_paid: float = 0.0
     win_count: int = 0
-    decisions: list[dict] = field(default_factory=list)  # includes NO-TRADE decisions
+    decisions: list[dict] = field(default_factory=list)  # includes NO-TRADE decisions and adjustments
     nonce: int = 0
 
     # ---------------- mutations ----------------
@@ -75,7 +83,7 @@ class Ledger:
 
     def buy(self, ts: int, asset: str, amount_in_quote: float, amount_out_raw: int, price: float,
             fee_quote: float, declared_edge_bps: float, realised_edge_bps: float, reason: str, tx: str = "",
-            decimals: int = 18) -> Trade:
+            decimals: int = 18, leg_edge_bps: float = 0.0) -> Trade:
         if amount_in_quote > self.quote_balance + 1e-9:
             raise ValueError("insufficient quote balance")
         self.quote_balance -= amount_in_quote
@@ -85,12 +93,14 @@ class Ledger:
         pos.declared_edge_bps = declared_edge_bps
         self.fees_paid += fee_quote
         t = Trade(ts, "BUY", asset, int(round(amount_in_quote * 1e6)), amount_out_raw, price,
-                  amount_in_quote, fee_quote, declared_edge_bps, realised_edge_bps, reason, tx)
+                  amount_in_quote, fee_quote, declared_edge_bps, realised_edge_bps, reason, tx,
+                  leg_edge_bps=leg_edge_bps)
         self.trades.append(t)
         return t
 
     def sell(self, ts: int, asset: str, amount_in_raw: int, amount_out_quote: float, price: float,
-             fee_quote: float, declared_edge_bps: float, realised_edge_bps: float, reason: str, tx: str = "") -> Trade:
+             fee_quote: float, declared_edge_bps: float, realised_edge_bps: float, reason: str, tx: str = "",
+             leg_edge_bps: float = 0.0) -> Trade:
         pos = self.positions[asset]
         if amount_in_raw <= 0 or pos.qty < amount_in_raw:
             raise ValueError("insufficient position")
@@ -104,7 +114,8 @@ class Ledger:
         self.quote_balance += amount_out_quote
         self.fees_paid += fee_quote
         t = Trade(ts, "SELL", asset, amount_in_raw, int(round(amount_out_quote * 1e6)), price,
-                  amount_out_quote, fee_quote, declared_edge_bps, realised_edge_bps, reason, tx)
+                  amount_out_quote, fee_quote, declared_edge_bps, realised_edge_bps, reason, tx,
+                  leg_edge_bps=leg_edge_bps)
         self.trades.append(t)
         return t
 
@@ -126,10 +137,13 @@ class Ledger:
             if self.equity_curve[i - 1][1] > 0
         ]
         sharpe = (statistics.mean(rets) / statistics.pstdev(rets) * (len(rets) ** 0.5)) if len(rets) > 2 and statistics.pstdev(rets) > 0 else 0.0
-        declared = sum(t.declared_edge_bps for t in self.trades)
-        realised = sum(t.realised_edge_bps for t in self.trades)
+        # Claims are registered on entries, so only buys contribute to the denominator.
+        declared = sum(t.declared_edge_bps for t in self.trades if t.side == "BUY")
+        realised = sum(t.realised_edge_bps for t in self.trades if t.side == "SELL")
+        execution = [t.leg_edge_bps for t in self.trades]
         return {
             "trades": len(self.trades),
+            "entries": sum(1 for t in self.trades if t.side == "BUY"),
             "wins": self.win_count,
             "hit_rate": (self.win_count / len(self.trades)) if self.trades else 0.0,
             "realised_pnl_quote": round(self.realised_pnl, 6),
@@ -141,7 +155,10 @@ class Ledger:
             "declared_edge_sum_bps": round(declared, 1),
             "realised_edge_sum_bps": round(realised, 1),
             "edge_credibility_bps": round((realised / declared * 10_000) if declared else 0.0, 1),
+            "execution_edge_sum_bps": round(sum(execution), 1),
+            "avg_execution_edge_bps": round(sum(execution) / len(execution), 1) if execution else 0.0,
             "no_trade_decisions": sum(1 for d in self.decisions if d.get("action") == "HOLD"),
+            "adjustments": sum(1 for d in self.decisions if d.get("action") == "ADJUST"),
         }
 
     # ---------------- persistence ----------------
@@ -166,12 +183,14 @@ class Ledger:
 
     @classmethod
     def load(cls, path: str) -> "Ledger":
+        """Load a saved ledger. Fields added after a file was written fall back to their defaults, so an
+        older state file still opens (a demo must not die because a dataclass gained a field)."""
         with open(path, encoding="utf-8") as fh:
             blob = json.load(fh)
         led = cls(quote_symbol=blob.get("quote_symbol", "USDT"))
         led.quote_balance = blob.get("quote_balance", 0.0)
-        led.positions = {k: Position(**v) for k, v in blob.get("positions", {}).items()}
-        led.trades = [Trade(**t) for t in blob.get("trades", [])]
+        led.positions = {k: _dataclass_from(Position, v) for k, v in blob.get("positions", {}).items()}
+        led.trades = [_dataclass_from(Trade, t) for t in blob.get("trades", [])]
         led.equity_curve = [tuple(x) for x in blob.get("equity_curve", [])]
         led.high_water = blob.get("high_water", 0.0)
         led.realised_pnl = blob.get("realised_pnl", 0.0)
@@ -180,3 +199,12 @@ class Ledger:
         led.decisions = blob.get("decisions", [])
         led.nonce = blob.get("nonce", 0)
         return led
+
+
+def _dataclass_from(cls, blob: dict):
+    """Fill missing keys with defaults instead of raising, so old state files stay readable."""
+    import dataclasses
+
+    names = {f.name for f in dataclasses.fields(cls)}
+    kwargs = {k: v for k, v in blob.items() if k in names}
+    return cls(**kwargs)

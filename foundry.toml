@@ -13,6 +13,9 @@ remappings = [
   "v3-core-08/=lib/v3-core-08/"
 ]
 gas_reports = ["SentinelVault"]
+# The policy parity table is read by both the Solidity kernel and the Python mirror, so the test suite
+# needs read access to exactly that one folder (nothing else).
+fs_permissions = [{ access = "read", path = "./test/fixtures" }]
 
 [rpc_endpoints]
 hsk = "https://mainnet.hsk.xyz"

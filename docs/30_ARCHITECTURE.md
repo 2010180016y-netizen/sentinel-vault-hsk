@@ -52,10 +52,12 @@
 
 ## 3. 전략 (정직한 알파 원천)
 
-**시장 구조 실측**: WHSK/USDT 0.3% 풀이 유일한 유동 시장(깊이 약 $420k, 스왑 2.8시간에 10건).
-관측된 바 수익률 범위는 −60bp~+61bp, 최대 단일 이동 약 130bp. 왕복 비용(수수료 60bp + 임팩트 33bp)은
-**96bp**. 따라서 이 시장에서 테이커 전략은 **이론적으로 손익분기 근처**이며, 대부분의 시점에서
-정답은 "거래하지 않는다"이다.
+**시장 구조 실측**: WHSK/USDT 0.3% 풀이 유일한 유동 시장(quote-side 깊이 약 $419k, 양쪽 합 $839k,
+재측정 2026-11-24). 관측된 바 최대 단일 이동 약 130bp. **왕복 비용은 126bp** — 수수료 30×2 + 진입 임팩트 33 +
+청산 임팩트 33이다. (이전 문서의 96bp는 두 임팩트를 평균낸 모델에서 나온 산술 오류였다: 테이커는 임팩트를
+두 번 낸다. 정정 경위는 `docs/20_EXPERT_PANEL_S4.md` 발견 11·20.) 여기에 20bp 마진을 더한 **허들 146bp**가
+정책의 온체인 하한이기도 하다. 관측 최대 이탈 130bp < 146bp이므로, 이 시장에서 테이커 전략의 정답은
+대부분의 시점에서 **"거래하지 않는다"**이다.
 
 전략은 이 사실을 전제로 설계됐다.
 
@@ -71,10 +73,29 @@
 | 기대 엣지 | `0.45×\|dev\| + 0.35×\|trend\|` (추세가 이탈과 같은 방향일 때만) |
 | 허들 | `max(min_edge_bps, 왕복비용 + 20bp)` — **비용을 넘지 못하면 거래하지 않는다** |
 | 사이즈 | `max_trade_notional × target_frac × conviction` (conviction 0~1) |
-| 청산 | 보유 중이고 (dev ≥ 허들 또는 RSI 과매수) 이면 청산. 청산은 conviction 조건을 요구하지 않음(위험 축소는 약한 근거로도 허용) |
+| 청산 | 보유 중이고 (dev ≥ 허들 또는 RSI 과매수) 이면 청산. 청산은 conviction·엣지 게이트를 요구하지 않음(위험 축소는 약한 근거로도 허용, `declaredEdgeBps = 0`) |
+| 주장 상한 | `claim = min(0.45×\|dev\| + 0.35×\|추세\|, \|dev\|)`. 온체인도 같은 상한을 강제한다(`EdgeClaimAboveDislocation`) |
 
 에이전트는 **결정적**이다. LLM은 서술만 하고 숫자를 만들지 않는다. 이유: 이 프로젝트의 전제가
 "주장은 검증 가능해야 한다"이므로, 재현 불가능한 판단을 수익 주장의 근거로 쓸 수 없다.
+
+### 3.1 엣지 회계 — 세 숫자, 세 질문
+
+| 숫자 | 질문 | 온체인 |
+|---|---|---|
+| 선언 엣지 합 | 진입할 때 "이만큼 벌 수 있다"고 주장한 값 | `declaredEdgeSumBps` |
+| 실현 엣지 합 | 청산 시 원가 대비 실제로 난 값(수수료 두 번 포함) | `realizedEdgeSumBps` |
+| 다리당 실행 | 각 체결이 풀 TWAP 대비 유리/불리했는가 (테이커는 음수) | `executionEdgeSumBps`, `avgExecutionEdgeBps()` |
+
+`edgeCredibilityBps()` = 실현 ÷ 선언 (10,000 = 주장이 정확히 지켜짐). **다리별 값을 라운드트립 주장과 나누면
+사과와 오렌지가 된다** — 이전 구현이 그랬고, 그래서 숫자가 118%처럼 보였다(S4 발견 9).
+
+### 3.2 대화형 조정 (Track 1 요구사항)
+
+`agent/control.py`가 문장을 해석해 **에이전트 행동만** 바꾼다: 1회 진입 규모, 진입 간격, 리스크 성향
+(최소 확신도·목표 비중), 대상 자산. 온체인 정책(1회·일일 한도, 슬리피지, 낙폭, 쿨다운 하한, 엣지 하한)은
+소유자 키의 영역이며 대화로 바뀌지 않는다. 초과 요청은 조용히 깎지 않고 **거부 + 실제 한도 안내**.
+전략 파라미터가 바뀌면 `strategyHash`가 재계산되고, 응답이 `registerStrategy` 필요성을 알린다.
 
 ---
 
@@ -114,7 +135,7 @@ Intent(address tokenIn,address tokenOut,uint24 fee,uint128 amountIn,uint128 minA
 11. 노셔널(쿼트 단위) ≤ 1회 한도(매도는 ×`maxSlices`까지 허용) 및 인텐트 자체 상한
 12. 롤링 24h 한도 (매수만 계상)
 13. 낙폭: `equity < highWater×(1−maxDrawdown)` 이면 **매수 금지**, 매도 허용
-14. 쿨다운(신규 부모주문), 부모 예산·조각 수
+14. 쿨다운(부모주문 없는 **매수**), 부모 예산·조각 수
 15. `forceApprove(router, amountIn)` → `multicall(deadline, [exactInputSingle(...)])`
 16. 승인 0 복구
 17. **사후 검증**: 라우터가 보고한 `amountOut == 실제 잔고 증가분`, 그리고 `≥ minAmountOut`
@@ -122,8 +143,9 @@ Intent(address tokenIn,address tokenOut,uint24 fee,uint128 amountIn,uint128 minA
 
 ### 4.5 뷰 (심사용)
 - `stats()` — 거래수, 승수, 실현손익, 수수료, 선언 엣지 합, 실현 엣지 합, 평가액, 고점, 일일 사용액
-- `edgeCredibilityBps()` — `실현 엣지 합 / 선언 엣지 합` (주장이 시장에서 버틴 비율)
-- `equity()` — TWAP 평가 자산 + 쿼트 잔고
+- `edgeCredibilityBps()` — `실현 엣지 합 / 선언 엣지 합` (진입 주장이 청산에서 지켜진 비율)
+- `avgExecutionEdgeBps()` — 다리당 TWAP 대비 실행값(테이커는 음수)
+- `tryEquity()` — 오라클 장애에도 죽지 않는 평가(원가 폴백 + `oracleHealthy` 플래그). `equity()`는 fail-closed
 - `hashIntent()` — 오프체인 서명과 온체인 digest 대조용
 
 ---
@@ -156,8 +178,9 @@ Intent(address tokenIn,address tokenOut,uint24 fee,uint128 amountIn,uint128 minA
 2. **단일 마켓·단일 leg.** USDT 대비 직접 풀이 있는 자산만 거래한다(2-hop 라우팅 없음).
 3. **TWAP 창은 풀 오라클 용량에 종속.** 창을 못 채우면 거래 중단(fail-closed).
 4. **소유자 키 분실 = 자금 동결.** 업그레이드가 없기 때문. 데모 자금 규모에서 수용한 트레이드오프.
-5. **Slither High 1건 수용.** `reentrancy-balance`(라우터 호출 후 잔고 델타 사용) — `nonReentrant`, 불변 라우터,
-   소유자 승인 토큰만 허용, 라우터 보고값과 델타 일치 강제로 위험을 닫았다. 상세는 `docs/20_EXPERT_PANEL_S3.md`.
+5. **Slither 13건 전부 트리아지.** High 1건(`reentrancy-balance`, 라우터 호출 전후 잔고 비교)은 `nonReentrant` +
+   불변 라우터 + 토큰 화이트리스트 + 라우터 보고값/잔고 델타 일치 강제로 닫았다. Medium 이하는 항목별 처리와 근거를
+   `docs/15_SLITHER_TRIAGE.md`에 적었다.
 6. **HSP 미사용.** Track 1이므로 요건 아님. Track 2의 설계 원칙(의도/승인/정산 분리)만 차용.
 
 ---
@@ -169,12 +192,13 @@ src/SentinelVault.sol          정책 커널 (불변, 프록시 없음)
 src/libraries/TwapLib.sol      TWAP consult + tick→가격 (fail-closed)
 src/interfaces/IHskSwap.sol    SwapRouter02/Factory/Pool 최소 인터페이스 (검증된 ABI 기준)
 src/mocks/                     테스트용 라우터·풀·팩토리·ERC20
-test/SentinelVault.t.sol       단위·정책·fuzz (27)
+test/SentinelVault.t.sol       단위·정책·fuzz + 공유 정책 테이블 (40)
+test/fixtures/policy_scenarios.json  Solidity와 Python이 함께 읽는 단일 표 (8 시나리오)
 test/SentinelVault.invariant.t.sol  불변식 5종, 128,000 호출
-test/SentinelVault.fork.t.sol  HSK 메인넷 포크 실거래 3건
+test/SentinelVault.fork.t.sol  HSK 메인넷 포크 실거래 5건 (실스왑→이탈 생성→그 이탈 거래)
 agent/                         AI 에이전트 코어 (Python, 의존성 web3/eth-account만)
 agent/server.py + web/         대화형 대시보드
 scripts/                       deploy(비용 산정·배포), backtest, run_paper
-tests/                         에이전트 단위 테스트 16
+tests/                         에이전트 테스트 48 (미러 패리티·EIP-712 온체인 대조·대화형 조정·라이브 배선)
 docs/                          사실관계·OSS 리서치·전문가 회의·아키텍처·제출
 ```

@@ -66,9 +66,10 @@
 
   <section class="card">
     <h2>Edge discipline</h2>
-    <div class="row"><span class="k">declared (sum)</span><span class="v" id="declared">—</span></div>
-    <div class="row"><span class="k">realised (sum)</span><span class="v" id="realised">—</span></div>
+    <div class="row"><span class="k">declared (sum, entries)</span><span class="v" id="declared">—</span></div>
+    <div class="row"><span class="k">realised (sum, exits)</span><span class="v" id="realised">—</span></div>
     <div class="row"><span class="k">credibility</span><span class="v" id="cred">—</span></div>
+    <div class="row"><span class="k">avg execution / leg</span><span class="v" id="exec">—</span></div>
     <div class="row"><span class="k">fees paid</span><span class="v" id="fees">—</span></div>
   </section>
 
@@ -89,7 +90,7 @@
   <section class="card wide">
     <h2>Ask the agent</h2>
     <div class="chat">
-      <input id="q" placeholder="상태 / 손익 / 리스크 / 왜 / 거래내역" />
+      <input id="q" placeholder="상태 / 손익 / 리스크 / 왜 / 온체인 · 또는 '1회 한도 100', 'WETH로 바꿔', '리스크 낮춰'" />
       <button onclick="ask()">물어보기</button>
       <button onclick="step()">1회 판단</button>
     </div>
@@ -137,18 +138,23 @@ async function refresh() {
   $("depth").textContent = fmt(s.market.depth_quote, 0) + " USDT";
   $("window").textContent = s.policy.twap_window + "s";
   $("posvalue").textContent = fmt(s.position.value_quote, 2) + " USDT";
-  $("qty").textContent = fmt(s.position.qty, 4);
+  $("qty").textContent = fmt(s.position.qty_whole !== undefined ? s.position.qty_whole : (s.position.qty / Math.pow(10, (s.market && s.market.decimals) || 18)), 4);
   $("avg").textContent = fmt(s.position.avg_price, 6);
   $("equity").textContent = fmt(s.metrics.equity, 2) + " USDT";
   $("declared").textContent = fmt(s.metrics.declared_edge_sum_bps, 0) + "bp";
   $("realised").textContent = fmt(s.metrics.realised_edge_sum_bps, 0) + "bp";
   $("cred").textContent = fmt(s.metrics.edge_credibility_bps, 0) + "bp";
+  $("exec").textContent = fmt(s.metrics.avg_execution_edge_bps, 1) + "bp";
   $("fees").textContent = fmt(s.metrics.fees_paid_quote, 4) + " USDT";
-  $("p1").textContent = fmt(s.policy.max_trade_notional, 0) + " USDT";
+  $("p1").textContent = fmt(s.policy.max_trade_notional, 0) + " USDT"
+    + (s.controls ? " (에이전트 " + fmt(s.controls.size_quote, 0) + ")" : "");
   $("p2").textContent = fmt(s.policy.max_daily_notional, 0) + " USDT";
   $("p3").textContent = s.policy.max_drawdown_bps + "bp";
   $("p4").textContent = s.policy.max_slippage_bps + "bp";
   $("p5").textContent = s.policy.min_edge_bps + "bp";
+  if (s.onchain && s.onchain.ok) {
+    $("hash").textContent = "strategy " + (s.strategy_hash || "").slice(0, 10) + "… · vault " + s.onchain.address.slice(0, 8) + "…";
+  }
   drawCurve(s.equity_curve);
   const log = $("log"); log.innerHTML = "";
   (s.decisions || []).slice().reverse().forEach(d => {

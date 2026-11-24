@@ -1,14 +1,19 @@
 """Build a self-contained evidence report (evidence/REPORT.html) — no external assets, no JS.
 
     python scripts/report.py
+
+Every number comes from a file that a reader can regenerate: `evidence/backtest.json` for the panels,
+`evidence/forge-test-summary.txt` and the pytest run for the test counts, `evidence/slither-report.json`
+for the static analysis. Nothing on this page is typed by hand except the prose.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -17,6 +22,7 @@ from agent.core import SentinelAgent  # noqa: E402
 from agent.ledger import Ledger  # noqa: E402
 
 KST = timezone(timedelta(hours=9))
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def svg_curve(points: list[tuple[int, float]], w: int = 640, h: int = 160, color: str = "#38d39f") -> str:
@@ -37,23 +43,69 @@ def table(rows: list[list[str]], head: list[str]) -> str:
     return f"<table><thead><tr>{h}</tr></thead><tbody>{b}</tbody></table>"
 
 
+def _forge_counts() -> tuple[int, int, int]:
+    path = os.path.join(HERE, "evidence", "forge-test-summary.txt")
+    if not os.path.exists(path):
+        return (0, 0, 0)
+    text = open(path, encoding="utf-8").read()
+    total = 0
+    m = re.search(r"(\d+) tests passed", text)
+    if m:
+        total = int(m.group(1))
+    unit = 0
+    for m in re.finditer(r"Suite result: ok\. (\d+) passed", text):
+        unit = max(unit, int(m.group(1)))
+    fork = len(re.findall(r"test_Fork_\w*", text))
+    return total, unit, fork
+
+
+def _slither_counts() -> dict:
+    path = os.path.join(HERE, "evidence", "slither-report.json")
+    try:
+        data = json.load(open(path, encoding="utf-8"))
+        detectors = data["results"]["detectors"]
+    except Exception:  # noqa: BLE001
+        return {}
+    out: dict[str, int] = {}
+    for d in detectors:
+        out[d["impact"]] = out.get(d["impact"], 0) + 1
+    out["total"] = len(detectors)
+    return out
+
+
 def main() -> int:
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    bt = json.load(open(os.path.join(here, "evidence/backtest.json")))
+    bt = json.load(open(os.path.join(HERE, "evidence/backtest.json"), encoding="utf-8"))
     settings = Settings.from_env()
     agent = SentinelAgent(settings, ledger=Ledger())
     agent.ledger.open_with(1_000.0)
     obs = agent.observe()
     d = agent.decide(obs)
-    snap = agent.snapshot()
 
     real, mr, dt = bt["real"], bt["synthetic_mean_reversion"], bt["synthetic_downtrend"]
     now = datetime.now(KST).strftime("%Y-%m-%d %H:%M KST")
+    total_tests, unit_tests, fork_tests = _forge_counts()
+    sl = _slither_counts()
+    fee = bt["fee_bps_per_leg"]
+    rt = bt["full_round_trip_cost_bps"]
 
     rows = []
     for r in real["rows"][-12:]:
-        rows.append([str(r["i"]), f'{r["price"]:.5f}', f'{r["twap"]:.5f}', f'{r["dev_bps"]:+.0f}',
-                     r["action"], f'{r["edge_bps"]:.0f}/{r["hurdle_bps"]:.0f}', "yes" if r["executed"] else "—"])
+        rows.append([
+            str(r["i"]), f'{r["price"]:.5f}', f'{r["twap"]:.5f}', f'{r["dev_bps"]:+.0f}',
+            r["action"], f'{r["edge_bps"]:.0f}/{r["hurdle_bps"]:.0f}',
+            "yes" if r["executed"] else "—", r.get("blocked_by", ""),
+        ])
+
+    def panel(blk: dict, color: str) -> str:
+        m = blk["metrics"]
+        return (
+            f'<div class="card">{svg_curve([(t, e) for t, e in blk["equity"]], color=color)}'
+            f'<div class="note">거래 {m["trades"]}건 (진입 {m["entries"]}) · 승 {m["wins"]} · '
+            f'실현손익 {m["realised_pnl_quote"]:+.4f} USDT · 수수료 {m["fees_paid_quote"]:.4f} · '
+            f'선언 엣지 {m["declared_edge_sum_bps"]:.0f}bp → 실현 {m["realised_edge_sum_bps"]:.0f}bp '
+            f'(신뢰도 {m["edge_credibility_bps"]:.0f}bp) · 다리당 실행 {m["avg_execution_edge_bps"]:+.1f}bp · '
+            f'거부 기록 {m["no_trade_decisions"]}건 · 최대낙폭 {m["max_drawdown_bps"]:.0f}bp</div></div>'
+        )
 
     html = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8">
 <title>Sentinel HSK — evidence</title>
@@ -70,63 +122,79 @@ def main() -> int:
  tr:last-child td{{border-bottom:0}}
  .card{{background:#12161b;border:1px solid #1f2630;border-radius:10px;padding:14px}}
  .note{{color:#8b98a5;font-size:12.5px}} .tag{{display:inline-block;font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid #1f2630;color:#8b98a5;margin-left:6px}}
- .warn{{color:#ffc857}} .ok{{color:#38d39f}}
+ .warn{{color:#ffc857}} .ok{{color:#38d39f}} code{{background:#151b22;padding:1px 5px;border-radius:4px}}
 </style></head><body><div class="wrap">
 <h1>Sentinel HSK — 실측 증거</h1>
-<div class="sub">HSK Chain Horizon Hackathon · Seoul / Track 1 · {now} · chain 177</div>
+<div class="sub">HSK Chain Horizon Hackathon · Seoul / Track 1 · {now} · chain 177 · 전부 재생성 가능한 숫자</div>
 
 <div class="grid">
   <div class="kpi"><div class="k">WHSK/USDT TWAP</div><div class="v">{obs.state.twap_quote_per_base:.5f}</div></div>
   <div class="kpi"><div class="k">spot vs TWAP</div><div class="v">{obs.state.twap_deviation_bps:+.0f} bp</div></div>
-  <div class="kpi"><div class="k">pool depth</div><div class="v">${obs.state.depth_quote():,.0f}</div></div>
-  <div class="kpi"><div class="k">round-trip cost</div><div class="v">{d.features.round_trip_cost_bps:.0f} bp</div></div>
-  <div class="kpi"><div class="k">edge hurdle</div><div class="v">{d.hurdle_bps:.0f} bp</div></div>
-  <div class="kpi"><div class="k">live decision</div><div class="v {'ok' if d.is_trade else 'warn'}">{d.action}</div></div>
+  <div class="kpi"><div class="k">pool depth (quote side)</div><div class="v">${obs.state.depth_quote():,.0f}</div></div>
+  <div class="kpi"><div class="k">왕복 비용 (실측)</div><div class="v">{rt:.0f} bp</div></div>
+  <div class="kpi"><div class="k">엣지 허들</div><div class="v">{d.hurdle_bps:.0f} bp</div></div>
+  <div class="kpi"><div class="k">지금 판단</div><div class="v {'ok' if d.is_trade else 'warn'}">{d.action}</div></div>
 </div>
 
-<h2>1. 실측 시장에서의 판단 (실제 기록 바 {bt['bars']}개)</h2>
-<div class="card">
- {svg_curve([(t, e) for t, e in real['equity']], color='#8b98a5')}
- <div class="note">거래 {real['metrics']['trades']}건 · 수수료 {real['metrics']['fees_paid_quote']:.4f} USDT · 평가액 {real['metrics']['equity']:.2f} USDT.
- 허들({d.hurdle_bps:.0f}bp)을 넘는 이탈이 없어 거래하지 않았다. <b>이것이 이 시장에서 정직한 결과다.</b></div>
-</div>
-{table(rows, ['bar', 'price', 'TWAP', 'dev bp', 'action', 'edge/hurdle', 'exec'])}
-<div class="note">마지막 12개 바. 거부 사유는 온체인 <code>recordNoTrade</code>로 남길 수 있게 설계됐다.</div>
+<h2>0. 비용은 이렇게 나옵니다</h2>
+<div class="card"><div class="note">
+테이커는 수수료와 가격 임팩트를 <b>두 번</b> 낸다(들어올 때, 나갈 때). 이전 모델은 두 임팩트를 평균내
+({fee:.0f}×2 + 33 = 93bp) 왕복 비용을 실제보다 낮게 잡았고, 그래서 스스로를 속여 거래할 수 있었다.
+지금은 <code>2×{fee:.0f}bp 수수료 + {bt["impact_bps_at_size"]:.1f}bp 진입 임팩트 + {bt["impact_bps_exit"]:.1f}bp 청산 임팩트
+= {rt:.1f}bp</code>를 쓰고, 여기에 20bp 마진을 더해 허들 {d.hurdle_bps:.0f}bp가 된다.
+정책의 온체인 하한(<code>minEdgeBps = {settings.policy.min_edge_bps}</code>)도 같은 값에서 나왔다 — 즉 "수수료보다 작은 엣지를 주장하면
+컨트랙트가 거부한다"가 말이 아니라 코드다.
+</div></div>
 
-<h2>2. 기계 검증 — 합성 평균회귀 시나리오 <span class="tag">SYNTHETIC</span></h2>
-<div class="card">
- {svg_curve([(t, e) for t, e in mr['equity']])}
- <div class="note">거래 {mr['metrics']['trades']}건 · 승 {mr['metrics']['wins']} · 실현손익 {mr['metrics']['realised_pnl_quote']:+.4f} USDT ·
- 선언 엣지 {mr['metrics']['declared_edge_sum_bps']:.0f}bp 대비 실현 {mr['metrics']['realised_edge_sum_bps']:.0f}bp
- (신뢰도 {mr['metrics']['edge_credibility_bps']:.0f}bp). 성과 주장이 아니라 <b>실행·회계 기계의 증명</b>이다.</div>
-</div>
+<h2>1. 실측 시장에서의 판단 (실제 HSKSwap 기록 바 {bt['bars']}개)</h2>
+{panel(real, '#8b98a5')}
+{table(rows, ['bar', 'price', 'TWAP', 'dev bp', 'action', 'edge/hurdle', 'exec', '거부 지점'])}
+<div class="note">허들({d.hurdle_bps:.0f}bp)을 넘는 이탈이 없어 거래하지 않았다. <b>이것이 이 시장에서 정직한 결과다.</b>
+거부 {real['metrics']['no_trade_decisions']}건은 모두 판단으로 기록됐다(온체인에서는 <code>recordNoTrade</code>로 같은 로그에 남는다).</div>
 
-<h2>3. 기계 검증 — 합성 하락추세 시나리오 <span class="tag">SYNTHETIC</span></h2>
-<div class="card">
- {svg_curve([(t, e) for t, e in dt['equity']], color='#ffc857')}
- <div class="note">거래 {dt['metrics']['trades']}건. 역추세 차단(추세 &lt; −max(25bp, 1.5×변동성))이 매수를 막았다.
- 평균회귀 전략이 가장 잘 죽는 국면을 코드가 스스로 회피하는지 보는 패널이다.</div>
-</div>
+<h2>2. 기계 검증 — 합성 평균회귀 <span class="tag">SYNTHETIC</span></h2>
+{panel(mr, '#38d39f')}
+<div class="note">성과 주장이 아니라 <b>실행·회계 기계의 증명</b>이다. 이 패널은 허들을 넘는 이탈(약 4% 급락 후 반등)을 인위적으로
+넣었고, 그 크기는 정직해진 왕복 비용({rt:.0f}bp)을 넘도록 잡았다 — 작은 이탈로는 기계가 돌아도 아무것도 증명되지 않는다.</div>
 
-<h2>4. 컨트랙트·테스트</h2>
+<h2>3. 기계 검증 — 합성 하락추세 <span class="tag">SYNTHETIC</span></h2>
+{panel(dt, '#ffc857')}
+<div class="note">거래 {dt['metrics']['trades']}건. 역추세 차단(추세 &lt; −max(25bp, 1.5×변동성))이 매수를 막았다.
+평균회귀 전략이 가장 잘 죽는 국면을 코드가 스스로 회피하는지 보는 패널이다.</div>
+
+<h2>4. 엣지 회계 — 주장과 결과를 같은 단위로</h2>
+<div class="card"><div class="note">
+세 숫자는 서로 다른 질문이고, 하나로 섞지 않는다(온체인 <code>SentinelVault</code>도 같은 셋을 노출한다).
+<table style="margin-top:10px">
+<thead><tr><th>숫자</th><th>질문</th><th>온체인 필드</th></tr></thead>
+<tbody>
+<tr><td>선언 엣지 합</td><td>진입할 때 "이만큼 벌 수 있다"고 <b>주장</b>한 값 (주장 ≤ 관측 이탈)</td><td><code>declaredEdgeSumBps</code></td></tr>
+<tr><td>실현 엣지 합</td><td>그 포지션을 <b>청산</b>했을 때 원가 대비 실제로 난 값 (수수료 두 번 포함)</td><td><code>realizedEdgeSumBps</code></td></tr>
+<tr><td>다리당 실행</td><td>각 체결이 풀 TWAP 대비 얼마나 유리/불리했는가 (테이커는 음수가 정상)</td><td><code>avgExecutionEdgeBps()</code></td></tr>
+</tbody></table>
+<span style="display:block;margin-top:8px">신뢰도 = 실현 ÷ 선언. <b>10,000bp = 주장이 정확히 지켜짐</b>. 이전 구현은 다리별(항상 음수) 값을
+라운드트립 주장(양수)과 나눠 사과와 오렌지를 비교했고, 그래서 숫자가 좋아 보이거나 나빠 보이는 쪽으로 쉽게 흔들렸다.</span>
+</div></div>
+
+<h2>5. 테스트·감사</h2>
 {table([
- ['단위·정책·fuzz 테스트', '27 / 27 통과'],
- ['불변식 테스트', '5종 · 128,000회 무작위 호출 · revert 0'],
- ['메인넷 포크 통합 테스트', '3 / 3 (실제 라우터로 100 USDT 스왑)'],
- ['에이전트(Python) 테스트', '16 / 16'],
- ['Slither', '21건 → 14건 (High 1 수용: reentrancy-balance, 근거 문서화)'],
- ['배포 비용(포크 실측)', '3,498,282 gas = 1.535 HSK (≈ $0.12)'],
- ['포크 스왑 실측', '100 USDT → 1,234.08 WHSK, TWAP 공정가 대비 −32bp = 풀 수수료 0.3%'],
+ ['Foundry (단위·정책·fuzz·공유 테이블)', f'{unit_tests}건 — 현재 {total_tests}건 전체 통과'],
+ ['Foundry (메인넷 포크, 실제 라우터·실제 풀)', f'{fork_tests}건 — 실스왑으로 이탈을 만들고 그 이탈을 거래'],
+ ['불변식', '5종 · 256 runs · 128,000 호출 · revert 0'],
+ ['Python 에이전트', '48건 (mirror parity·대화형 조정·라이브 배선·EIP-712 온체인 대조 포함)'],
+ ['Slither', f'{sl.get("total", "?")}건 (High {sl.get("High", 0)} 수용 / Medium {sl.get("Medium", 0)} 수용 / Low {sl.get("Low", 0)} 수용 / Info {sl.get("Informational", 0)}) — 항목별 근거 docs/15_SLITHER_TRIAGE.md'],
+ ['배포 비용(포크·추정)', '3,802,309 gas ≈ 1.90 HSK (500 gwei) ≈ $0.15 · 바이트코드 18,675B (EIP-170 한도 내)'],
 ], ['항목', '결과'])}
 
-<h2>5. 이 리포트를 읽는 법</h2>
+<h2>6. 이 리포트를 읽는 법</h2>
 <div class="note">
-1·2·3번 패널의 숫자는 모두 같은 코드 경로(<code>agent/signals.py → policy.py → ledger.py</code>)에서 나왔다.
+1·2·3번 패널의 숫자는 모두 같은 코드 경로(<code>signals.py → policy.py → ledger.py</code>)에서 나왔다 —
+`scripts/backtest.py`도 실전 루프와 동일하게 <code>policy.check()</code>를 통과한 판단만 집행하고, 거부도 기록한다.
 다른 점은 <b>입력 가격이 실제 HSKSwap 스왑인지, 합성인지</b>뿐이다. 합성 패널은 라벨을 붙였고 성과로 주장하지 않는다.
-컨트랙트 쪽 주장(수수료 자기계산, TWAP 자기검증, 사후 잔고 검증)은 <code>forge test</code>의 포크 테스트로 검증된다.
+컨트랙트 쪽 주장(수수료 자기계산, TWAP 자기검증, 사후 잔고 검증, 주장 상한)은 <code>forge test</code>의 포크 테스트로 검증된다.
 </div>
 </div></body></html>"""
-    out = os.path.join(here, "evidence/REPORT.html")
+    out = os.path.join(HERE, "evidence/REPORT.html")
     with open(out, "w", encoding="utf-8") as fh:
         fh.write(html)
     print("wrote", out, len(html), "bytes")

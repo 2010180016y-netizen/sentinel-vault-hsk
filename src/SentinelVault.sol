@@ -96,6 +96,8 @@ contract SentinelVault is ReentrancyGuard {
         uint256 equity;
         uint256 highWater;
         uint256 dailyNotional;
+        bool oracleHealthy;
+        int256 executionEdgeSumBps;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -103,6 +105,13 @@ contract SentinelVault is ReentrancyGuard {
     // ---------------------------------------------------------------------------------------------
 
     uint16 internal constant BPS = 10_000;
+
+    /// @dev The edge hurdle is the vault's differentiator, so it is bounded on both sides: a policy that
+    ///      sets it to zero would silently turn the gate off, and one set above half a percent-scaled
+    ///      spread would never trade. Bounds are policy validation, not policy opinion.
+    uint16 internal constant MAX_EDGE_HURDLE_BPS = 5_000;
+    /// @dev A cooldown longer than a week is almost certainly a typo and would brick a live vault.
+    uint32 internal constant MAX_COOLDOWN = 7 days;
 
     bytes32 public constant DOMAIN_TYPEHASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
@@ -138,7 +147,7 @@ contract SentinelVault is ReentrancyGuard {
 
     uint256 public dailyNotional;
     uint256 public windowStart;
-    uint256 public lastTradeAt;
+    uint256 public lastBuyAt;
     uint256 public highWater;
     int256 public realizedPnlQuote;
     uint256 public feesPaidQuote;
@@ -146,6 +155,7 @@ contract SentinelVault is ReentrancyGuard {
     uint256 public winCount;
     int256 public declaredEdgeSumBps;
     int256 public realizedEdgeSumBps;
+    int256 public executionEdgeSumBps;
 
     // ---------------------------------------------------------------------------------------------
     // Events & errors
@@ -165,7 +175,9 @@ contract SentinelVault is ReentrancyGuard {
         int256 realizedEdgeBps,
         uint64 nonce
     );
-    event NoTradeDecision(bytes32 indexed strategyHash, uint16 edgeBps, bytes32 reasonHash, uint64 nonce);
+    event NoTradeDecision(
+        bytes32 indexed strategyHash, uint16 edgeBps, uint16 hurdleBps, bytes32 reasonHash, uint64 nonce
+    );
     event StrategyRegistered(bytes32 indexed strategyHash, uint64 registeredAt);
     event PolicyUpdated(Policy policy);
     event SignersUpdated(address indexed strategySigner, address indexed riskSigner);
@@ -179,6 +191,7 @@ contract SentinelVault is ReentrancyGuard {
 
     error NotOwner();
     error NotStrategySigner();
+    error NotStrategyOrOwner();
     error NotRiskOrOwner();
     error VaultPaused();
     error Expired();
@@ -188,6 +201,7 @@ contract SentinelVault is ReentrancyGuard {
     error BadStrategySignature();
     error BadRiskSignature();
     error EdgeBelowHurdle();
+    error EdgeClaimAboveDislocation();
     error QuoteLegRequired();
     error MarketDisabled();
     error PoolMismatch();
@@ -208,6 +222,7 @@ contract SentinelVault is ReentrancyGuard {
     error OutputMismatch();
     error NothingToSell();
     error InvalidConfig();
+    error OracleUnavailable();
 
     // ---------------------------------------------------------------------------------------------
     // Construction
@@ -230,12 +245,7 @@ contract SentinelVault is ReentrancyGuard {
             revert InvalidConfig();
         }
         if (strategySigner_ == riskSigner_) revert InvalidConfig(); // dual control must be two keys
-        if (
-            policy_.maxSlippageBps == 0 || policy_.maxSlippageBps > 2_000 || policy_.maxDrawdownBps == 0
-                || policy_.maxDrawdownBps > 9_000 || policy_.twapWindow < 60 || policy_.maxSlices == 0
-                || policy_.maxTradeNotional == 0 || policy_.maxDailyNotional < policy_.maxTradeNotional
-                || policy_.maxSpotTwapDeviationBps == 0
-        ) revert InvalidConfig();
+        _validatePolicy(policy_); // same predicate the owner faces on every later `setPolicy`
 
         owner = owner_;
         router = router_;
@@ -264,13 +274,22 @@ contract SentinelVault is ReentrancyGuard {
 
     /// @notice Replace the whole risk policy. Emits the full struct so every change is auditable.
     function setPolicy(Policy calldata p) external onlyOwner {
+        _validatePolicy(p);
+        policy = p;
+        emit PolicyUpdated(p);
+    }
+
+    /// @dev One place for the policy predicate: the constructor and `setPolicy` cannot drift apart, and
+    ///      every bound that makes a limit meaningful is stated once. `minEdgeBps` was previously
+    ///      unvalidated — an owner could set it to 0 in one transaction and disable the edge hurdle that
+    ///      the whole design rests on, with no event a reader would notice.
+    function _validatePolicy(Policy memory p) private pure {
         if (
             p.maxSlippageBps == 0 || p.maxSlippageBps > 2_000 || p.maxDrawdownBps == 0 || p.maxDrawdownBps > 9_000
                 || p.twapWindow < 60 || p.maxSlices == 0 || p.maxTradeNotional == 0
                 || p.maxDailyNotional < p.maxTradeNotional || p.maxSpotTwapDeviationBps == 0
+                || p.minEdgeBps == 0 || p.minEdgeBps > MAX_EDGE_HURDLE_BPS || p.cooldown > MAX_COOLDOWN
         ) revert InvalidConfig();
-        policy = p;
-        emit PolicyUpdated(p);
     }
 
     function setSigners(address newStrategy, address newRisk) external onlyOwner {
@@ -338,6 +357,15 @@ contract SentinelVault is ReentrancyGuard {
     function withdraw(address token, address to, uint256 amount) external onlyOwner nonReentrant {
         if (to == address(0)) revert InvalidConfig();
         IERC20(token).safeTransfer(to, amount);
+        // Withdrawing a position asset is not a sale, but the cost basis must follow the tokens out or the
+        // book keeps claiming a position the vault no longer holds (and a later sell would underflow basis).
+        Position storage pos = positions[token];
+        if (pos.qty > 0) {
+            uint256 qtyOut = amount < pos.qty ? amount : pos.qty;
+            uint256 costOut = (pos.costQuote * qtyOut) / pos.qty;
+            pos.qty -= qtyOut;
+            pos.costQuote -= costOut;
+        }
         emit Withdrawn(token, to, amount);
     }
 
@@ -356,7 +384,7 @@ contract SentinelVault is ReentrancyGuard {
     }
 
     function closeParent(bytes32 parentId) external {
-        if (msg.sender != strategySigner && msg.sender != owner) revert NotStrategySigner();
+        if (msg.sender != strategySigner && msg.sender != owner) revert NotStrategyOrOwner();
         Parent storage p = parents[parentId];
         if (!p.open) revert UnknownParent();
         p.open = false;
@@ -364,57 +392,110 @@ contract SentinelVault is ReentrancyGuard {
     }
 
     /// @notice Log a deliberate refusal. This is how "the hurdle was not met" becomes evidence.
-    function recordNoTrade(bytes32 strategyHash, uint16 edgeBps, bytes32 reasonHash, uint64 nonce) external {
+    /// @dev The refusal writes the same register as a trade would: it consumes the nonce, so one nonce is
+    ///      exactly one decision (a refusal can no longer be replayed, and the same nonce cannot later be
+    ///      re-used for a trade that was never decided that way). It also carries the hurdle it was
+    ///      measured against, which must be at least the on-chain floor — a refusal that claims to have
+    ///      been judged against a softer hurdle than the vault enforces is rejected rather than logged.
+    function recordNoTrade(
+        bytes32 strategyHash,
+        uint16 edgeBps,
+        uint16 hurdleBps,
+        bytes32 reasonHash,
+        uint64 nonce
+    ) external {
         if (msg.sender != strategySigner) revert NotStrategySigner();
-        if (strategyRegisteredAt[strategyHash] == 0) revert StrategyNotRegistered();
-        emit NoTradeDecision(strategyHash, edgeBps, reasonHash, nonce);
+        if (strategyRegisteredAt[strategyHash] < 1) revert StrategyNotRegistered();
+        if (nonceUsed[nonce]) revert NonceUsed();
+        if (hurdleBps < policy.minEdgeBps) revert EdgeBelowHurdle();
+        nonceUsed[nonce] = true;
+        emit NoTradeDecision(strategyHash, edgeBps, hurdleBps, reasonHash, nonce);
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Core: validate -> execute -> re-validate -> account
+    // Core: validate -> price -> budget -> execute -> re-validate -> account
     // ---------------------------------------------------------------------------------------------
 
+    /// @notice One intent, one nonce, one decision. Every predicate is checked before any value moves, and
+    ///         the fill is re-verified against an independent observation after it moves.
+    /// @dev Split into five named steps (`_authorise` / `_fairValueBand` / `_enforceBudget` / `_swap` /
+    ///      `_settle`) so each rule a judge cares about can be read on its own instead of inside one
+    ///      140-line function.
     function executeIntent(Intent calldata it, bytes calldata strategySignature, bytes calldata riskSignature)
         external
         nonReentrant
         returns (uint256 amountOut)
     {
+        Market memory m = _authorise(it, strategySignature, riskSignature);
+
+        uint256 fairOut = _fairValueBand(m, it);
+        bool isBuy = it.tokenIn == quoteToken;
+        uint256 notionalQuote = isBuy ? uint256(it.amountIn) : fairOut; // always quote-token units
+
+        _enforceBudget(it, isBuy, notionalQuote);
+
+        amountOut = _swap(it);
+        _settle(it, isBuy, notionalQuote, fairOut, amountOut);
+    }
+
+    /// @dev Everything that can reject an intent without touching value. A rejection costs the caller gas
+    ///      and changes nothing (the nonce is only consumed when the whole call succeeds).
+    function _authorise(Intent calldata it, bytes calldata strategySignature, bytes calldata riskSignature)
+        private
+        returns (Market memory m)
+    {
         if (paused) revert VaultPaused();
         if (block.timestamp > it.deadline) revert Expired();
         if (it.amountIn == 0) revert ZeroAmount();
-        if (strategyRegisteredAt[it.strategyHash] == 0) revert StrategyNotRegistered();
+        if (strategyRegisteredAt[it.strategyHash] < 1) revert StrategyNotRegistered();
         if (nonceUsed[it.nonce]) revert NonceUsed();
-        if (it.declaredEdgeBps < policy.minEdgeBps) revert EdgeBelowHurdle();
-
-        bytes32 intentHash = hashIntent(it);
-        if (_recover(intentHash, strategySignature) != strategySigner) revert BadStrategySignature();
-        if (_recover(intentHash, riskSignature) != riskSigner) revert BadRiskSignature();
-        nonceUsed[it.nonce] = true;
 
         bool isBuy = it.tokenIn == quoteToken;
+        // The hurdle is a claim gate on *entries*: refusing to reduce risk because an exit's expected
+        // move is small would turn a risk limit into a trap (the same class of bug the per-trade cap had).
+        // An exit declares 0 edge and is still bounded by the TWAP band, the daily budget and drawdown.
+        if (isBuy && it.declaredEdgeBps < policy.minEdgeBps) revert EdgeBelowHurdle();
+
+        bytes32 intentHash = hashIntent(it);
+        (address strategyRecovered, ECDSA.RecoverError strategyError) = _recover(intentHash, strategySignature);
+        if (strategyError != ECDSA.RecoverError.NoError || strategyRecovered != strategySigner) {
+            revert BadStrategySignature();
+        }
+        (address riskRecovered, ECDSA.RecoverError riskError) = _recover(intentHash, riskSignature);
+        if (riskError != ECDSA.RecoverError.NoError || riskRecovered != riskSigner) revert BadRiskSignature();
+        nonceUsed[it.nonce] = true;
+
         if (!isBuy && it.tokenOut != quoteToken) revert QuoteLegRequired();
         address asset = isBuy ? it.tokenOut : it.tokenIn;
 
-        Market memory m = markets[asset];
+        m = markets[asset];
         if (!m.enabled || m.pool == address(0)) revert MarketDisabled();
         if (it.fee != m.fee) revert PoolMismatch();
         if (IV3Factory(factory).getPool(it.tokenIn, it.tokenOut, it.fee) != m.pool) revert PoolMismatch();
         if (IERC20(it.tokenIn).balanceOf(address(this)) < it.amountIn) revert InsufficientBalance();
+    }
 
-        // ---- fair value from the pool's own oracle (never from the agent's quote) ----
+    /// @dev Fair value comes from the pool's own oracle, never from the agent's quote: QuoterV2 reverts
+    ///      by design and cannot be called on-chain, so the vault recomputes the price itself and forces
+    ///      `minAmountOut` into [fairOut*(1-maxSlippage), fairOut]. Spot must also be near TWAP, or a
+    ///      flash-swap-manipulated price would be the cheapest way to fake an edge.
+    ///      The claim is also bounded by what the venue was visibly offering: a declared edge larger than
+    ///      the observed spot-vs-TWAP dislocation is a claim about a move that was not there to capture.
+    function _fairValueBand(Market memory m, Intent calldata it) private view returns (uint256 fairOut) {
         int24 twapTick = TwapLib.consult(m.pool, policy.twapWindow);
-        if (TwapLib.absDiff(TwapLib.spotTick(m.pool), twapTick) > policy.maxSpotTwapDeviationBps) {
-            revert PriceDeviated();
-        }
+        uint256 dislocationBps = TwapLib.absDiff(TwapLib.spotTick(m.pool), twapTick); // 1 tick ≈ 1 bp
+        if (dislocationBps > policy.maxSpotTwapDeviationBps) revert PriceDeviated();
+        if (uint256(it.declaredEdgeBps) > dislocationBps) revert EdgeClaimAboveDislocation();
 
-        uint256 fairOut = TwapLib.quoteAtTick(twapTick, it.amountIn, it.tokenIn, it.tokenOut);
+        fairOut = TwapLib.quoteAtTick(twapTick, it.amountIn, it.tokenIn, it.tokenOut);
         if (fairOut == 0) revert FairValueZero();
         if (it.minAmountOut > fairOut) revert MinOutAboveFair();
         uint256 floorOut = (fairOut * (BPS - policy.maxSlippageBps)) / BPS;
         if (it.minAmountOut < floorOut) revert SlippageTooWide();
+    }
 
-        // ---- notional & budget ----
-        uint256 notionalQuote = isBuy ? uint256(it.amountIn) : fairOut; // always quote-token units
+    /// @dev Notional, daily budget, drawdown and schedule discipline, in that order.
+    function _enforceBudget(Intent calldata it, bool isBuy, uint256 notionalQuote) private {
         // Sizing cap. Exits get a wider ceiling on purpose: found while testing, a per-trade cap applied
         // to sells could trap a position that had grown past the cap, turning a risk limit into a risk.
         // Risk-reducing trades still respect the TWAP slippage band and the rolling daily cap.
@@ -427,15 +508,18 @@ contract SentinelVault is ReentrancyGuard {
         _rollWindow();
         if (isBuy && dailyNotional + notionalQuote > policy.maxDailyNotional) revert DailyLimitExceeded();
 
-        // ---- drawdown: under stress only risk-reducing trades may pass ----
+        // Drawdown: under stress only risk-reducing trades may pass. `equity()` fails closed here — if the
+        // oracle cannot price the book, the vault refuses to trade rather than guess.
         uint256 eq = equity();
         if (highWater != 0 && eq < (highWater * (BPS - policy.maxDrawdownBps)) / BPS && isBuy) {
             revert DrawdownBreach();
         }
 
-        // ---- schedule discipline ----
+        // Schedule discipline: a standalone *entry* respects the cooldown; a child spends its parent's
+        // budget. The cooldown meters how fast new capital is deployed, so an exit is never delayed by it —
+        // a stop-loss that cannot run because of a rate limit is the same trap as a cap that blocks exits.
         if (it.parentId == bytes32(0)) {
-            if (lastTradeAt != 0 && block.timestamp < lastTradeAt + policy.cooldown) revert CooldownActive();
+            if (isBuy && lastBuyAt != 0 && block.timestamp < lastBuyAt + policy.cooldown) revert CooldownActive();
         } else {
             Parent storage p = parents[it.parentId];
             if (!p.open) revert UnknownParent();
@@ -444,10 +528,16 @@ contract SentinelVault is ReentrancyGuard {
             p.spentQuote = uint64(uint256(p.spentQuote) + notionalQuote);
             p.slices += 1;
         }
-        lastTradeAt = block.timestamp;
-        if (isBuy) dailyNotional += notionalQuote;
+        if (isBuy) {
+            lastBuyAt = block.timestamp;
+            dailyNotional += notionalQuote;
+        }
+    }
 
-        // ---- execute through HSKSwap SwapRouter02 (deadline enforced by multicall) ----
+    /// @dev Execute through HSKSwap SwapRouter02 and re-verify the fill. The router reports an amount; the
+    ///      token balance is observed independently; both must agree (Safe Guard's checkAfterExecution
+    ///      idea applied to value), so a router that reports a good fill but delivers less is caught.
+    function _swap(Intent calldata it) private returns (uint256 received) {
         IERC20 tokenIn = IERC20(it.tokenIn);
         tokenIn.forceApprove(router, it.amountIn);
 
@@ -467,34 +557,47 @@ contract SentinelVault is ReentrancyGuard {
         );
         bytes[] memory results = IV3SwapRouter02(router).multicall(it.deadline, calls);
         uint256 reported = abi.decode(results[0], (uint256));
-        uint256 received = IERC20(it.tokenOut).balanceOf(address(this)) - balanceBefore;
+        received = IERC20(it.tokenOut).balanceOf(address(this)) - balanceBefore;
 
         tokenIn.forceApprove(router, 0); // allowance hygiene (USDT-style tokens require the reset anyway)
 
-        // ---- post-condition (Safe Guard's checkAfterExecution idea, applied to value) ----
-        // Two independent observations must agree: what the router says it paid, and what actually
-        // arrived. A router that reports a good fill but delivers less is caught here, not trusted.
         if (reported != received) revert OutputMismatch();
         if (received < it.minAmountOut) revert InsufficientOutput();
-        amountOut = received;
+    }
 
-        // ---- accounting ----
-        int256 realizedEdgeBps = ((int256(amountOut) - int256(fairOut)) * int256(uint256(BPS))) / int256(fairOut);
-        declaredEdgeSumBps += int256(uint256(it.declaredEdgeBps));
-        realizedEdgeSumBps += realizedEdgeBps;
+    /// @dev Book-keeping. Two different questions, two different accumulators, never conflated:
+    ///      - `executionEdgeSumBps` is per-leg: how the fill landed against the pool's own TWAP. It is the
+    ///        measured cost of taking liquidity (a taker is expected to be slightly negative here).
+    ///      - `declaredEdgeSumBps` / `realizedEdgeSumBps` are round-trip: what the agent claimed when it
+    ///        entered, and what the position actually produced when it was exited, both in bps of the
+    ///        cost basis. Claims and outcomes share a unit, so `edgeCredibilityBps()` compares like with like.
+    function _settle(
+        Intent calldata it,
+        bool isBuy,
+        uint256 notionalQuote,
+        uint256 fairOut,
+        uint256 amountOut
+    ) private {
+        address asset = isBuy ? it.tokenOut : it.tokenIn;
+        int256 legEdgeBps = ((int256(amountOut) - int256(fairOut)) * int256(uint256(BPS))) / int256(fairOut);
+        executionEdgeSumBps += legEdgeBps;
 
+        Position storage pos = positions[asset];
         if (isBuy) {
-            Position storage pos = positions[asset];
+            declaredEdgeSumBps += int256(uint256(it.declaredEdgeBps));
             pos.qty += amountOut;
             pos.costQuote += notionalQuote;
             feesPaidQuote += (uint256(it.amountIn) * it.fee) / 1_000_000;
         } else {
-            Position storage pos = positions[asset];
-            if (pos.qty == 0) revert NothingToSell();
+            if (pos.qty < 1) revert NothingToSell();
             uint256 costPortion = (pos.costQuote * it.amountIn) / pos.qty;
             int256 pnl = int256(amountOut) - int256(costPortion);
             realizedPnlQuote += pnl;
             if (pnl > 0) winCount += 1;
+            // The entry claim is settled here: the round trip either paid the claimed edge or it did not.
+            if (costPortion > 0) {
+                realizedEdgeSumBps += (pnl * int256(uint256(BPS))) / int256(costPortion);
+            }
             pos.qty -= it.amountIn;
             pos.costQuote -= costPortion;
             feesPaidQuote += (fairOut * it.fee) / 1_000_000;
@@ -505,7 +608,7 @@ contract SentinelVault is ReentrancyGuard {
         if (eqAfter > highWater) highWater = eqAfter;
 
         emit IntentExecuted(
-            intentHash,
+            hashIntent(it),
             it.strategyHash,
             it.parentId,
             it.tokenIn,
@@ -515,7 +618,7 @@ contract SentinelVault is ReentrancyGuard {
             notionalQuote,
             fairOut,
             it.declaredEdgeBps,
-            realizedEdgeBps,
+            legEdgeBps, // this leg's execution vs TWAP (not the round-trip claim)
             it.nonce
         );
     }
@@ -545,26 +648,57 @@ contract SentinelVault is ReentrancyGuard {
     }
 
     /// @notice TWAP-marked equity in quote-token raw units.
+    /// @dev Fails closed: if a held asset cannot be priced from its own pool oracle, this reverts. The risk
+    ///      path (drawdown) must never trade against a guessed equity.
     function equity() public view returns (uint256 total) {
+        bool fullyPriced;
+        (total, fullyPriced) = tryEquity();
+        if (!fullyPriced) revert OracleUnavailable();
+    }
+
+    /// @notice The same mark, but it never reverts: unpriced holdings fall back to cost basis and the flag
+    ///         says so. Views a human or a judge reads use this — an oracle outage must not make the vault
+    ///         unauditable, while the trading path above still refuses to act on a stale price.
+    function tryEquity() public view returns (uint256 total, bool fullyPriced) {
+        fullyPriced = true;
         total = IERC20(quoteToken).balanceOf(address(this));
-        uint32 window = policy.twapWindow;
         uint256 n = assets.length;
         for (uint256 i; i < n; ++i) {
             address asset = assets[i];
             Market memory m = markets[asset];
-            uint256 bal = IERC20(asset).balanceOf(address(this));
-            if (bal == 0) continue;
-            if (!m.enabled || m.pool == address(0)) {
-                total += positions[asset].costQuote; // no price available: fall back to cost basis
-                continue;
+            uint256 value = 0;
+            bool priced = false;
+            if (m.enabled && m.pool != address(0)) {
+                // One external call per asset: it reads the balance and prices it in the same hop, so the
+                // loop stays cheap and the failure mode is a single catch.
+                try this.holdingValue(m.pool, asset) returns (uint256 v) {
+                    value = v;
+                    priced = true;
+                } catch {
+                    priced = false;
+                }
             }
-            int24 tick = TwapLib.consult(m.pool, window);
-            total += TwapLib.quoteAtTick(tick, bal, asset, quoteToken);
+            if (priced) {
+                total += value;
+            } else {
+                uint256 costBasis = positions[asset].costQuote;
+                total += costBasis; // unpriced: cost basis, and the flag says so
+                if (costBasis > 0) fullyPriced = false;
+            }
         }
+    }
+
+    /// @dev External only so that `tryEquity` can catch an oracle failure with try/catch. Reads this vault's
+    ///      own balance of `asset` and marks it at the pool's TWAP.
+    function holdingValue(address pool, address asset) external view returns (uint256) {
+        uint256 bal = IERC20(asset).balanceOf(address(this));
+        if (bal < 1) return 0;
+        return TwapLib.quoteAtTick(TwapLib.consult(pool, policy.twapWindow), bal, asset, quoteToken);
     }
 
     /// @notice The one view a judge needs: performance, cost and whether the declared edge was real.
     function stats() external view returns (Stats memory s) {
+        (uint256 eq, bool fullyPriced) = tryEquity();
         s = Stats({
             tradeCount: tradeCount,
             winCount: winCount,
@@ -572,17 +706,29 @@ contract SentinelVault is ReentrancyGuard {
             feesPaidQuote: feesPaidQuote,
             declaredEdgeSumBps: declaredEdgeSumBps,
             realizedEdgeSumBps: realizedEdgeSumBps,
-            equity: equity(),
+            equity: eq,
             highWater: highWater,
-            dailyNotional: dailyNotional
+            dailyNotional: dailyNotional,
+            oracleHealthy: fullyPriced,
+            executionEdgeSumBps: executionEdgeSumBps
         });
     }
 
-    /// @notice Realised edge as a share of declared edge, in bps of the claim (10_000 = claims fully held).
-    /// @dev Returns 0 when nothing has been declared: absence of a claim is not credibility.
+    /// @notice Realised round-trip edge as a share of the edge claimed on entry, in bps of the claim
+    ///         (10_000 = the claim was exactly paid).
+    /// @dev Claims are registered on entries and settled on exits, so both sides of this ratio are the same
+    ///      question asked before and after paying the fees. Returns 0 when nothing has been claimed:
+    ///      absence of a claim is not credibility.
     function edgeCredibilityBps() external view returns (int256) {
         if (declaredEdgeSumBps == 0) return 0;
         return (realizedEdgeSumBps * int256(uint256(BPS))) / declaredEdgeSumBps;
+    }
+
+    /// @notice Average execution result per leg against the pool's own TWAP, in bps (negative = the vault
+    ///         paid that much to take liquidity). This is the number that shows a taker's costs are real.
+    function avgExecutionEdgeBps() external view returns (int256) {
+        if (tradeCount == 0) return 0;
+        return executionEdgeSumBps / int256(tradeCount);
     }
 
     function assetCount() external view returns (uint256) {
@@ -590,10 +736,18 @@ contract SentinelVault is ReentrancyGuard {
     }
 
     /// @dev Invalid or malleable (high-s) signatures return address(0) instead of bubbling a generic
-    ///      revert, so callers get a precise reason and no signature is ever "half accepted".
-    function _recover(bytes32 digest, bytes calldata signature) internal pure returns (address signer) {
-        (address recovered,,) = ECDSA.tryRecover(digest, signature);
-        signer = recovered;
+    ///      revert, so callers get a precise reason and no signature is ever "half accepted". The
+    ///      RecoverError is returned as well: a wrong-length signature and a wrong-key signature both
+    ///      end as a rejection, and neither can ever be read as success.
+    function _recover(bytes32 digest, bytes calldata signature)
+        internal
+        pure
+        returns (address signer, ECDSA.RecoverError err)
+    {
+        // The third return (the error argument) carries the offending S value; it is never needed once the
+        // call is rejected, so it is dropped on purpose.
+        // slither-disable-next-line unused-return
+        (signer, err,) = ECDSA.tryRecover(digest, signature);
     }
 
     function _rollWindow() internal {

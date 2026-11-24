@@ -2,8 +2,9 @@
 
 Why duplicate the rules: a policy rejection on-chain costs gas and tells us nothing new. The agent
 therefore evaluates the *same* predicates locally, in the same order, and refuses to build an intent
-that would revert. The Vorlage is the Solidity contract; tests/test_policy_mirror.py asserts that a
-decision accepted here is also accepted by the contract (via a shared scenario table).
+that would revert. The Vorlage is the Solidity contract; `test/fixtures/policy_scenarios.json` is a
+single table read by BOTH implementations (`test/SentinelVault.t.sol::test_SharedPolicyTable` and
+`tests/test_policy_mirror.py`), so the two cannot drift apart without one of the two test suites failing.
 """
 
 from __future__ import annotations
@@ -15,13 +16,16 @@ from .config import BPS, RiskPolicy
 
 Reason = Literal[
     "EDGE_BELOW_HURDLE",
+    "SPOT_DEVIATION",
+    "EDGE_CLAIM_ABOVE_DISLOCATION",
+    "FAIR_VALUE_ZERO",
+    "MIN_OUT_ABOVE_FAIR",
+    "SLIPPAGE_WINDOW",
     "TRADE_TOO_LARGE",
     "EXCEEDS_INTENT_CAP",
     "DAILY_LIMIT",
     "DRAWDOWN",
     "COOLDOWN",
-    "SPOT_DEVIATION",
-    "SLIPPAGE_WINDOW",
     "ORACLE",
     "OK",
 ]
@@ -78,21 +82,39 @@ def check(
     policy: RiskPolicy,
     account: AccountState,
     market: MarketState,
+    now_ts: int = 0,
 ) -> Verdict:
+    """Same predicates, same order as SentinelVault (`_authorise` -> `_fairValueBand` -> `_enforceBudget`)."""
     notes: list[str] = []
+    dislocation = abs(market.spot_vs_twap_bps)
 
     if not market.oracle_ok:
         return Verdict(False, "ORACLE", "pool oracle cannot serve the TWAP window")
 
-    if abs(market.spot_vs_twap_bps) > policy.max_spot_twap_deviation_bps:
+    # Claim gates apply to entries. An exit declares no edge: refusing to reduce risk because an expected
+    # move is small would turn a risk limit into a trap (mirror of the contract's `isBuy &&` guard).
+    if is_buy and declared_edge_bps < policy.min_edge_bps:
+        return Verdict(False, "EDGE_BELOW_HURDLE", f"{declared_edge_bps:.0f}bp < {policy.min_edge_bps}bp")
+
+    if dislocation > policy.max_spot_twap_deviation_bps:
         return Verdict(
             False,
             "SPOT_DEVIATION",
             f"spot is {market.spot_vs_twap_bps:+.0f}bp from TWAP (cap {policy.max_spot_twap_deviation_bps})",
         )
 
-    if declared_edge_bps < policy.min_edge_bps:
-        return Verdict(False, "EDGE_BELOW_HURDLE", f"{declared_edge_bps:.0f}bp < {policy.min_edge_bps}bp")
+    if declared_edge_bps > dislocation:
+        return Verdict(
+            False,
+            "EDGE_CLAIM_ABOVE_DISLOCATION",
+            f"claim {declared_edge_bps:.0f}bp > observed dislocation {dislocation:.0f}bp",
+        )
+
+    if fair_out <= 0:
+        return Verdict(False, "FAIR_VALUE_ZERO", "TWAP fair value is zero")
+
+    if min_out > fair_out:
+        return Verdict(False, "MIN_OUT_ABOVE_FAIR", f"minOut {min_out} > fair {fair_out}: demands better than TWAP")
 
     if not in_slippage_band(min_out, fair_out, policy.max_slippage_bps):
         return Verdict(
@@ -120,8 +142,15 @@ def check(
             f"drawdown {account.drawdown_bps:.0f}bp > {policy.max_drawdown_bps}bp; only exits allowed",
         )
 
+    if is_buy and account.last_trade_ts and now_ts and now_ts < account.last_trade_ts + policy.cooldown_s:
+        return Verdict(
+            False,
+            "COOLDOWN",
+            f"{now_ts - account.last_trade_ts}s since the last entry, cooldown {policy.cooldown_s}s",
+        )
+
     if not is_buy:
-        notes.append("risk-reducing trade: notional and daily caps do not apply")
+        notes.append("risk-reducing trade: notional, daily and cooldown gates do not apply")
 
     return Verdict(True, "OK", "all predicates satisfied", notes)
 

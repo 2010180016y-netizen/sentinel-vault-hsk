@@ -64,7 +64,10 @@ def main() -> int:
     try:
         gas_estimate = w3.eth.estimate_gas({"from": owner, "data": data})
     except Exception:
-        gas_estimate = 2_500_000  # conservative fallback for an unfunded owner
+        # An unfunded owner cannot be simulated. The measured deployment on a mainnet fork was 3,498,282 gas,
+        # so the fallback is that measurement with headroom — the previous 2.5M fallback would have run out of
+        # gas mid-deploy (and `--confirm` sizes the real transaction from this number).
+        gas_estimate = 4_500_000
 
     l2_fee = gas_estimate * gas_price
     try:
@@ -78,6 +81,8 @@ def main() -> int:
     print(json.dumps({
         "chain_id": s.chain.chain_id,
         "contract_bytes": len(data),
+        "eip170_limit": 24_576,
+        "fits_eip170": len(data) <= 24_576,
         "gas_estimate": gas_estimate,
         "gas_price_gwei": round(gas_price / 1e9, 3),
         "l2_fee_hsk": round(l2_fee / 1e18, 6),
@@ -100,15 +105,29 @@ def main() -> int:
         "from": acct.address,
         "data": data,
         "nonce": w3.eth.get_transaction_count(acct.address),
-        "gas": int(gas_estimate * 1.25),
+        "gas": max(int(gas_estimate * 1.25), 4_000_000),
         "gasPrice": gas_price,
         "chainId": s.chain.chain_id,
     }
     signed = acct.sign_transaction(tx)
     h = w3.eth.send_raw_transaction(signed.raw_transaction)
     rcpt = w3.eth.wait_for_transaction_receipt(h, timeout=180)
-    print(json.dumps({"tx": h.hex(), "status": rcpt["status"], "address": rcpt.get("contractAddress"),
+    address = rcpt.get("contractAddress")
+    print(json.dumps({"tx": h.hex(), "status": rcpt["status"], "address": address,
                       "explorer": f"{s.chain.explorer}/tx/{h.hex()}"}, indent=1))
+    if rcpt["status"] != 1 or not address:
+        print("deployment FAILED — nothing to arm")
+        return 1
+    print(json.dumps({
+        "next": [
+            f"vault.setMarket({s.addresses.whsk}, 3000, true)          # owner key",
+            "vault.registerStrategy(<strategyHash from agent.strategy_hash>)  # owner key",
+            "vault.unpause()                                          # owner key: the vault starts paused",
+            "vault.deposit(<USDT>, <amount>)                          # owner key",
+            "SENTINEL_VAULT=<address> SENTINEL_LIVE=1 python scripts/execute_intent.py --confirm",
+        ],
+        "reminder": "the agent's strategyHash must be registered by the owner before any live trade",
+    }, indent=1))
     return 0
 
 

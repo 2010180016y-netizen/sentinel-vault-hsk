@@ -28,7 +28,12 @@ library TwapLib {
         secondsAgos[0] = window;
         secondsAgos[1] = 0;
 
+        // The second array (seconds-per-liquidity cumulatives) is not used for a price and is ignored
+        // deliberately; the length check below is what makes the answer trustworthy. Silenced for
+        // Slither with the reason inline rather than dropped from the report.
+        // slither-disable-next-line unused-return
         (int56[] memory tickCumulatives,) = _observeOrRevert(pool, secondsAgos);
+        if (tickCumulatives.length != 2) revert OracleNotReady(); // a short answer is not a TWAP
 
         int56 delta = tickCumulatives[1] - tickCumulatives[0];
         int56 avg = delta / int56(uint56(window));
@@ -54,7 +59,10 @@ library TwapLib {
     }
 
     /// @notice Spot tick, read only to measure how far the pool has been pushed from its own TWAP.
+    /// @dev The five unused fields are part of the tuple and carry no meaning for this read; the tick is
+    ///      the only value the deviation gate needs. Silenced for Slither with the reason inline.
     function spotTick(address pool) internal view returns (int24 tick) {
+        // slither-disable-next-line unused-return
         (, tick,,,,,) = IV3Pool(pool).slot0();
     }
 

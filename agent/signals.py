@@ -4,6 +4,12 @@ The engine is deliberately deterministic. An LLM may narrate the decision (see a
 but it never chooses the numbers: a language model cannot be made accountable for a bps claim,
 and this project's whole premise is that claims must be checkable. Every decision carries the
 features that produced it, so the same inputs always reproduce the same trade.
+
+Cost model (corrected 2026-11-24): a taker pays the fee **and** the price impact twice — once getting
+in, once getting out. The earlier model averaged the two impacts (2*fee + (impact_in + impact_out)/2),
+which understated the hurdle by roughly one impact and therefore let the bot trade moves that could not
+pay for themselves. The hurdle now uses the full round trip, and the claim is capped by the dislocation
+the venue is actually showing, which is the same bound the vault enforces on-chain.
 """
 
 from __future__ import annotations
@@ -75,6 +81,8 @@ class Features:
             "twap_dev_bps": round(self.twap_dev_bps, 2),
             "flow_imbalance": round(self.flow_imbalance, 3),
             "fee_bps": round(self.fee_bps, 2),
+            "impact_bps_buy": round(self.impact_bps_buy, 2),
+            "impact_bps_sell": round(self.impact_bps_sell, 2),
             "round_trip_cost_bps": round(self.round_trip_cost_bps, 2),
             "liquidity_quote": round(self.liquidity_quote, 2),
         }
@@ -89,6 +97,7 @@ class Decision:
     reasons: list[str] = field(default_factory=list)
     features: Features | None = None
     hurdle_bps: float = 0.0
+    dislocation_bps: float = 0.0
 
     @property
     def is_trade(self) -> bool:
@@ -126,19 +135,30 @@ def build_features(
         fee_bps=fee_bps,
         impact_bps_buy=impact_bps_buy,
         impact_bps_sell=impact_bps_sell,
-        round_trip_cost_bps=2 * fee_bps + (impact_bps_buy + impact_bps_sell) / 2,
+        # A taker pays fee + impact on the way in AND on the way out. Both impacts are counted.
+        round_trip_cost_bps=2 * fee_bps + impact_bps_buy + impact_bps_sell,
         liquidity_quote=liquidity_quote,
     )
 
 
-def decide(f: Features, policy: RiskPolicy, strategy: Strategy, *, has_position: bool, position_quote: float) -> Decision:
+def decide(
+    f: Features,
+    policy: RiskPolicy,
+    strategy: Strategy,
+    *,
+    has_position: bool,
+    position_quote: float,
+    size_cap_quote: float | None = None,
+) -> Decision:
     """Mean reversion against the pool's own TWAP, confirmed by trend/flow, gated by the cost hurdle."""
     hurdle = max(float(policy.min_edge_bps), f.round_trip_cost_bps + 20.0)  # cost + a margin to be worth it
 
-    # Edge is the *expected* favourable move, discounted heavily: we never claim the full dislocation.
+    # Edge is the *expected* favourable move, discounted heavily: we never claim the full dislocation. It is
+    # then capped at the dislocation itself, because a claim about a move larger than the move on offer is a
+    # claim the chain can (and does) refuse: SentinelVault reverts `EdgeClaimAboveDislocation`.
     reversion = abs(f.twap_dev_bps) * 0.45
     continuation = abs(f.trend_bps) * 0.35 if (f.trend_bps * -f.twap_dev_bps) > 0 else 0.0
-    edge = reversion + continuation
+    edge = min(reversion + continuation, abs(f.twap_dev_bps))
 
     conviction = 0.0
     conviction += min(abs(f.twap_dev_bps) / 400.0, 1.0) * 0.5
@@ -169,19 +189,24 @@ def decide(f: Features, policy: RiskPolicy, strategy: Strategy, *, has_position:
 
     if wants_buy and not noisy and not adverse_trend and conviction >= strategy.min_conviction and edge >= hurdle:
         action = "BUY"
-        reasons.insert(0, f"spot {abs(f.twap_dev_bps):.0f}bp below TWAP, reversion edge {edge:.0f}bp > hurdle {hurdle:.0f}bp")
+        reasons.insert(
+            0,
+            f"spot {abs(f.twap_dev_bps):.0f}bp below TWAP, reversion edge {edge:.0f}bp > hurdle {hurdle:.0f}bp",
+        )
     elif wants_sell:
-        # Exits are allowed on a weaker case than entries: refusing to reduce risk is itself a risk.
+        # Exits are allowed on a weaker case than entries: refusing to reduce risk is itself a risk. An exit
+        # claims no edge on-chain (declaredEdgeBps = 0), so the hurdle does not apply to it.
         action = "SELL"
         why = "spot above TWAP" if f.twap_dev_bps >= hurdle else "RSI overbought"
-        reasons.insert(0, f"{why} ({f.twap_dev_bps:+.0f}bp, RSI {f.rsi:.0f}) -> take profit, edge {edge:.0f}bp")
+        reasons.insert(0, f"{why} ({f.twap_dev_bps:+.0f}bp, RSI {f.rsi:.0f}) -> take profit")
 
     if action == "HOLD" and not reasons:
         reasons.append("no dislocation beyond the cost hurdle; holding is the priced decision")
 
     size_quote = 0.0
     if action == "BUY":
-        size_quote = policy.max_trade_notional / 1e6 * strategy.target_position_frac * conviction
+        cap = size_cap_quote if size_cap_quote is not None else policy.max_trade_notional / 1e6
+        size_quote = min(cap, policy.max_trade_notional / 1e6) * strategy.target_position_frac * conviction
     elif action == "SELL":
         size_quote = position_quote
 
@@ -193,4 +218,5 @@ def decide(f: Features, policy: RiskPolicy, strategy: Strategy, *, has_position:
         reasons=reasons,
         features=f,
         hurdle_bps=round(hurdle, 2),
+        dislocation_bps=round(abs(f.twap_dev_bps), 2),
     )

@@ -1,22 +1,61 @@
+# forge test — 2026-11-24 (after the full-review pass)
+Ran 5 tests for test/SentinelVault.fork.t.sol:SentinelVaultForkTest
+[PASS] test_Fork_ExitSettlesTheClaim() (gas: 2135728)
+[PASS] test_Fork_RealDislocationRealSwap() (gas: 1798923)
+[PASS] test_Fork_RevertsUnregisteredStrategy() (gas: 68890)
+[PASS] test_Fork_RevertsWhenClaimExceedsDislocation() (gas: 166430)
+[PASS] test_Fork_RevertsWhenFloorTooWide() (gas: 1265751)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 9.68s (5.59s CPU time)
+Ran 40 tests for test/SentinelVault.t.sol:SentinelVaultTest
+[PASS] testFuzz_EdgeHurdleIsMonotonic(uint16) (runs: 256, μ: 268230, ~: 127675)
+[PASS] testFuzz_LegalSizesExecuteCleanly(uint64) (runs: 256, μ: 577180, ~: 577220)
+[PASS] test_Buy_ExecutesAndAccounts() (gas: 581187)
+[PASS] test_DrawdownBlocksBuysButAllowsExits() (gas: 1475185)
+[PASS] test_ExitIsNotBlockedByCooldown() (gas: 935314)
+[PASS] test_ExitIsNotGatedByEdgeHurdle() (gas: 774275)
+[PASS] test_ExitLargerThanTradeCapIsAllowed() (gas: 1382466)
+[PASS] test_NoTradeConsumesNonce() (gas: 216149)
+[PASS] test_NoTradeDecisionIsRecorded() (gas: 68369)
+[PASS] test_NoTradeRejectsHurdleBelowFloor() (gas: 43184)
+[PASS] test_NoTradeRequiresRegisteredStrategy() (gas: 39169)
+[PASS] test_OnlyOwnerCanRegisterStrategy() (gas: 33488)
+[PASS] test_OwnerCanCloseParent() (gas: 100343)
+[PASS] test_ParentBudgetAndSliceCount() (gas: 1252565)
+[PASS] test_ParentSliceCountCap() (gas: 1505369)
+[PASS] test_Revert_ConstructorRejectsAbsurdCooldown() (gas: 420461)
+[PASS] test_Revert_ConstructorRejectsZeroEdgeHurdle() (gas: 420550)
+[PASS] test_Revert_SetPolicyTurnsOffEdgeHurdle() (gas: 106245)
+[PASS] test_Revert_WhenClaimExceedsObservedDislocation() (gas: 216208)
+[PASS] test_Revert_WhenCooldownActive() (gas: 645528)
+[PASS] test_Revert_WhenDailyLimitExceeded() (gas: 1947196)
+[PASS] test_Revert_WhenEdgeBelowHurdle() (gas: 79058)
+[PASS] test_Revert_WhenExpired() (gas: 71669)
+[PASS] test_Revert_WhenMinOutAboveFair() (gas: 136709)
+[PASS] test_Revert_WhenNonceReplayed() (gas: 555478)
+[PASS] test_Revert_WhenOracleNotReady() (gas: 162571)
+[PASS] test_Revert_WhenPaused() (gas: 105751)
+[PASS] test_Revert_WhenRiskSignatureMissing() (gas: 87835)
+[PASS] test_Revert_WhenRouterUnderpays() (gas: 400621)
+[PASS] test_Revert_WhenSignatureCoversDifferentAmount() (gas: 86888)
+[PASS] test_Revert_WhenSlippageTooWide() (gas: 136846)
+[PASS] test_Revert_WhenSpotDeviatesFromTwap() (gas: 167875)
+[PASS] test_Revert_WhenStrategyNotRegistered() (gas: 73804)
+[PASS] test_Revert_WhenTradeTooLarge() (gas: 136881)
+[PASS] test_RiskKeyCanStopButNotRestart() (gas: 74338)
+[PASS] test_Sell_RealisesPnlAndCountsWins() (gas: 869793)
+[PASS] test_SharedPolicyTable() (gas: 36306976)
+[PASS] test_StatsSurvivesOracleOutage() (gas: 639427)
+[PASS] test_StrategyKeyCannotWithdraw() (gas: 37355)
+[PASS] test_WithdrawAssetKeepsPositionBookConsistent() (gas: 863047)
+Suite result: ok. 40 passed; 0 failed; 0 skipped; finished in 195.12ms (193.91ms CPU time)
+Ran 2 tests for test/SentinelVault.invariant.t.sol:SentinelVaultInvariantTest
+[PASS]
 SentinelVaultInvariantTest invariants:
 [PASS] invariant_DailyBudgetRespected
 [PASS] invariant_DeclaredEdgeAboveHurdle
 [PASS] invariant_EquityNonNegative
 [PASS] invariant_NoDanglingAllowance
 [PASS] invariant_TradeCountMatchesHandler
- SentinelVaultInvariantTest invariants (runs: 256, calls: 128000, reverts: 0)
-
-╭--------------+----------+-------+---------+----------╮
-| Contract     | Selector | Calls | Reverts | Discards |
-+======================================================+
-| VaultHandler | buy      | 42720 | 0       | 0        |
-|--------------+----------+-------+---------+----------|
-| VaultHandler | sell     | 42765 | 0       | 0        |
-|--------------+----------+-------+---------+----------|
-| VaultHandler | warp     | 42515 | 0       | 0        |
-╰--------------+----------+-------+---------+----------╯
-
-[PASS] test_HandlerActuallyTrades() (gas: 1006852)
-Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 29.05s (29.04s CPU time)
-
-Ran 3 test suites in 29.08s (38.43s CPU time): 32 tests passed, 0 failed, 0 skipped (32 total tests)
+[PASS] test_HandlerActuallyTrades() (gas: 1017044)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 23.13s (23.12s CPU time)
+Ran 3 test suites in 23.14s (33.00s CPU time): 47 tests passed, 0 failed, 0 skipped (47 total tests)

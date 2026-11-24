@@ -2,15 +2,21 @@
 
 Deliberately dependency-free (stdlib http.server): the demo must run on a fresh laptop with
 `pip install -r requirements.txt` and nothing else.
+
+The server is threaded, so every mutation of the shared agent is serialised behind one lock: two clicks on
+"1회 판단" in the same second must not produce two trades against the same nonce.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
+import threading
+import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
+
+import os
 
 from .config import Settings
 from .core import SentinelAgent
@@ -20,6 +26,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 WEB = os.path.join(os.path.dirname(HERE), "web")
 
 _agent: SentinelAgent | None = None
+_lock = threading.Lock()
+_last_observe = 0.0
+OBSERVE_TTL_S = 5.0
 
 
 def get_agent(state_path: str) -> SentinelAgent:
@@ -49,21 +58,28 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:  # noqa: N802
+        global _last_observe
         parsed = urlparse(self.path)
-        agent = get_agent(self.state_path)
-        if parsed.path == "/api/state":
-            if agent.last_observation is None:
-                agent.observe()
-            return self._json(agent.snapshot())
-        if parsed.path == "/api/step":
-            rec = agent.step()
-            agent.ledger.save(self.state_path)
-            return self._json({"record": rec, "state": agent.snapshot()})
-        if parsed.path == "/api/ask":
-            q = (parse_qs(parsed.query).get("q") or [""])[0]
-            return self._json({"answer": agent.answer(q)})
         if parsed.path == "/health":
             return self._json({"ok": True})
+        agent = get_agent(self.state_path)
+
+        if parsed.path == "/api/state":
+            with _lock:
+                if agent.last_observation is None or time.time() - _last_observe > OBSERVE_TTL_S:
+                    agent.observe()
+                    _last_observe = time.time()
+                return self._json(agent.snapshot())
+        if parsed.path == "/api/step":
+            with _lock:
+                rec = agent.step()
+                _last_observe = time.time()
+                agent.ledger.save(self.state_path)
+                return self._json({"record": rec, "state": agent.snapshot()})
+        if parsed.path == "/api/ask":
+            q = (parse_qs(parsed.query).get("q") or [""])[0]
+            with _lock:
+                return self._json({"answer": agent.answer(unquote(q))})
         return super().do_GET()
 
     def log_message(self, fmt: str, *args) -> None:  # keep the terminal quiet

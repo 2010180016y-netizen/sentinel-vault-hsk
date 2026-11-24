@@ -74,4 +74,8 @@
 
 - HSP QA MCP 엔드포인트 `https://mcp-qa.hashkeymerchant.com/health` → 본 환경에서 **HTTP 403 (Cloudflare "Sorry, you have been blocked")**. 대회 가이드 1단계가 "프로젝트 팀의 공인 egress IP를 HSP Operations에 전달해 allowlist 등록"이므로 **정상적인 차단**이다.
 - 즉 Track 2는 ①주최 측 IP allowlist 등록(외부 대기) ②지갑 수동 승인·테스트 토큰 충전(팀의 수동 작업)이 선행되어야 첫 결제가 가능하다. 남은 8일 중 외부 응답 대기가 리스크.
-- Track 1은 HSKSwap 메인넷이 이미 살아 있고(풀 5개, WHSK/USDT 유동성 약 $840k 상당) 읽기·견적·TWAP이 모두 무허가로 가능하다 → **우리 환경에서 완주 가능한 트랙은 Track 1**.
+- Track 1은 HSKSwap 메인넷이 이미 살아 있고(풀 5개, WHSK/USDT 유동성 **quote-side 약 $419k / 양쪽 합 약 $839k**, 2026-11-24 재측정) 읽기·견적·TWAP이 모두 무허가로 가능하다 → **우리 환경에서 완주 가능한 트랙은 Track 1**.
+
+> 유동성 표기 주의: 두 숫자가 문서마다 섞여 있었다(README $420k / 이 문서 $840k). 둘 다 맞지만 정의가 다르다 —
+> quote-side(USDT 쪽, `PoolState.depth_quote()`가 내는 값)가 $419,423이고, 자산 쪽까지 더한 양쪽 합이 $838,845다.
+> 명령(`liquidity()` × tick)은 같고, 어느 쪽을 세느냐만 다르다. 이후 문서는 **quote-side를 기본**으로 쓰고 필요하면 병기한다.

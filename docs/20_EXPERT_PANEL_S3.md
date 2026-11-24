@@ -1,7 +1,7 @@
 # 전문가 회의체 3차 — 보안·엣지케이스·데모 적대적 검증
 
 대상: 실제로 작성된 `src/SentinelVault.sol`, `agent/*`, 테스트 32건(Foundry) + 16건(Python), Slither 출력
-(`evidence/slither-report.json`, High 1 / Medium 4 / Low 6 / Info 3, 총 14건).
+(`evidence/slither-report.json`, 당시 High 1 / Medium 5 / Low 7 / Info 1, 총 14건 — 4차 재점검에서 분포 표기가 틀렸음을 확인·정정, `docs/15_SLITHER_TRIAGE.md`).
 
 형식은 1·2차와 같다: 5개 역할이 서로 다른 결론을 내도록 강제하고, 충돌은 **증거(테스트 실패·감사 출력·체인 데이터)로 판정**했다.
 
