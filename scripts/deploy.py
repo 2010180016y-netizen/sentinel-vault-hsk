@@ -64,7 +64,7 @@ def main() -> int:
     try:
         gas_estimate = w3.eth.estimate_gas({"from": owner, "data": data})
     except Exception:
-        # An unfunded owner cannot be simulated. The measured deployment on a mainnet fork was 3,498,282 gas,
+        # An unfunded owner cannot be simulated. The measured deployment estimate after the review pass is ~3.8M gas,
         # so the fallback is that measurement with headroom — the previous 2.5M fallback would have run out of
         # gas mid-deploy (and `--confirm` sizes the real transaction from this number).
         gas_estimate = 4_500_000
