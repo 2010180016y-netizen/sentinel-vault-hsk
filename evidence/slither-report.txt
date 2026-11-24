@@ -1,0 +1,60 @@
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#uninitialized-local-variables
+INFO:Detectors:
+Detector: unused-return
+SentinelVault.executeIntent(SentinelVault.Intent,bytes,bytes) (src/SentinelVault.sol#376-515) ignores return value by IV3SwapRouter02(router).multicall(it.deadline,calls) (src/SentinelVault.sol#467)
+SentinelVault._recover(bytes32,bytes) (src/SentinelVault.sol#587-590) ignores return value by (recovered,None,None) = ECDSA.tryRecover(digest,signature) (src/SentinelVault.sol#588)
+TwapLib.consult(address,uint32) (src/libraries/TwapLib.sol#24-45) ignores return value by (tc) = IV3Pool(pool).observe(secondsAgos) (src/libraries/TwapLib.sol#32-36)
+TwapLib.spotTick(address) (src/libraries/TwapLib.sol#48-50) ignores return value by (None,tick,None,None,None,None,None) = IV3Pool(pool).slot0() (src/libraries/TwapLib.sol#49)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
+INFO:Detectors:
+Detector: calls-loop
+SentinelVault.equity() (src/SentinelVault.sol#542-557) has external calls inside a loop: bal = IERC20(asset).balanceOf(address(this)) (src/SentinelVault.sol#548)
+	Calls stack containing the loop:
+		SentinelVault.executeIntent(SentinelVault.Intent,bytes,bytes)
+SentinelVault.equity() (src/SentinelVault.sol#542-557) has external calls inside a loop: bal = IERC20(asset).balanceOf(address(this)) (src/SentinelVault.sol#548)
+SentinelVault.equity() (src/SentinelVault.sol#542-557) has external calls inside a loop: bal = IERC20(asset).balanceOf(address(this)) (src/SentinelVault.sol#548)
+	Calls stack containing the loop:
+		SentinelVault.stats()
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation/#calls-inside-a-loop
+INFO:Detectors:
+Detector: reentrancy-benign
+Reentrancy in SentinelVault.executeIntent(SentinelVault.Intent,bytes,bytes) (src/SentinelVault.sol#376-515):
+	External calls:
+	- IV3SwapRouter02(router).multicall(it.deadline,calls) (src/SentinelVault.sol#467)
+	State variables written after the call(s):
+	- declaredEdgeSumBps += int256(uint256(it.declaredEdgeBps)) (src/SentinelVault.sol#477)
+	- feesPaidQuote += (uint256(it.amountIn) * it.fee) / 1_000_000 (src/SentinelVault.sol#484)
+	- feesPaidQuote += (fairOut * it.fee) / 1_000_000 (src/SentinelVault.sol#494)
+	- realizedEdgeSumBps += realizedEdgeBps (src/SentinelVault.sol#478)
+	- realizedPnlQuote += pnl (src/SentinelVault.sol#490)
+	- tradeCount += 1 (src/SentinelVault.sol#496)
+	- winCount += 1 (src/SentinelVault.sol#491)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
+INFO:Detectors:
+Detector: timestamp
+SentinelVault.recordNoTrade(bytes32,uint16,bytes32,uint64) (src/SentinelVault.sol#366-370) uses timestamp for comparisons
+	Dangerous comparisons:
+	- strategyRegisteredAt[strategyHash] == 0 (src/SentinelVault.sol#368)
+SentinelVault.executeIntent(SentinelVault.Intent,bytes,bytes) (src/SentinelVault.sol#376-515) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp > it.deadline (src/SentinelVault.sol#382)
+	- lastTradeAt != 0 && block.timestamp < lastTradeAt + policy.cooldown (src/SentinelVault.sol#437)
+SentinelVault._rollWindow() (src/SentinelVault.sol#592-597) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp >= windowStart + 86400 (src/SentinelVault.sol#593)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Detectors:
+Detector: cyclomatic-complexity
+SentinelVault.executeIntent(SentinelVault.Intent,bytes,bytes) (src/SentinelVault.sol#376-515) has a high cyclomatic complexity (36).
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#cyclomatic-complexity
+INFO:Detectors:
+Detector: unindexed-event-address
+Event SentinelVault.SignersUpdated(address,address) (src/SentinelVault.sol#171) has address parameters but no indexed parameters
+Event SentinelVault.Paused(address) (src/SentinelVault.sol#175) has address parameters but no indexed parameters
+Event SentinelVault.Unpaused(address) (src/SentinelVault.sol#176) has address parameters but no indexed parameters
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unindexed-event-address-parameters
+INFO:Detectors:
+Detector: cache-array-length
+Loop condition i < assets.length (src/SentinelVault.sol#545) should use cached array length instead of referencing `length` member of the storage array.
+ Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#cache-array-length
+INFO:Slither:. analyzed (30 contracts with 102 detectors), 21 result(s) found

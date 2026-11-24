@@ -1,0 +1,22 @@
+SentinelVaultInvariantTest invariants:
+[PASS] invariant_DailyBudgetRespected
+[PASS] invariant_DeclaredEdgeAboveHurdle
+[PASS] invariant_EquityNonNegative
+[PASS] invariant_NoDanglingAllowance
+[PASS] invariant_TradeCountMatchesHandler
+ SentinelVaultInvariantTest invariants (runs: 256, calls: 128000, reverts: 0)
+
+╭--------------+----------+-------+---------+----------╮
+| Contract     | Selector | Calls | Reverts | Discards |
++======================================================+
+| VaultHandler | buy      | 42720 | 0       | 0        |
+|--------------+----------+-------+---------+----------|
+| VaultHandler | sell     | 42765 | 0       | 0        |
+|--------------+----------+-------+---------+----------|
+| VaultHandler | warp     | 42515 | 0       | 0        |
+╰--------------+----------+-------+---------+----------╯
+
+[PASS] test_HandlerActuallyTrades() (gas: 1006852)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 29.05s (29.04s CPU time)
+
+Ran 3 test suites in 29.08s (38.43s CPU time): 32 tests passed, 0 failed, 0 skipped (32 total tests)

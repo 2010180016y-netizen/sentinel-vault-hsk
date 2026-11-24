@@ -1,0 +1,9 @@
+# agent runtime (no node toolchain needed)
+web3>=7,<9
+eth-account>=0.11
+eth-abi>=5
+eth-utils>=4
+# tests / tooling
+pytest>=8
+py-solc-x>=2
+slither-analyzer>=0.10

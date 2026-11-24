@@ -1,0 +1,11 @@
+# upstream research clones (~300MB) — reproducible with the commands in docs/10_OSS_RESEARCH.md
+oss/
+# build artifacts
+out/
+cache/
+__pycache__/
+*.pyc
+.pytest_cache/
+# local state and secrets
+state/
+.env

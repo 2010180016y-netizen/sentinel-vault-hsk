@@ -1,0 +1,63 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<title>Sentinel HSK — evidence</title>
+<style>
+ body{margin:0;background:#0b0d10;color:#e6edf3;font:14px/1.6 -apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+ .wrap{max-width:980px;margin:0 auto;padding:32px 20px 60px}
+ h1{font-size:24px;margin:0 0 4px} h2{font-size:15px;margin:34px 0 10px;color:#8b98a5;letter-spacing:.06em;text-transform:uppercase}
+ .sub{color:#8b98a5}
+ .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:16px}
+ .kpi{background:#12161b;border:1px solid #1f2630;border-radius:10px;padding:12px 14px}
+ .kpi .v{font-size:20px;font-weight:650} .kpi .k{color:#8b98a5;font-size:12px}
+ table{width:100%;border-collapse:collapse;background:#12161b;border:1px solid #1f2630;border-radius:10px;overflow:hidden;font-size:12.5px}
+ th,td{padding:7px 10px;text-align:left;border-bottom:1px solid #1f2630} th{color:#8b98a5;font-weight:600}
+ tr:last-child td{border-bottom:0}
+ .card{background:#12161b;border:1px solid #1f2630;border-radius:10px;padding:14px}
+ .note{color:#8b98a5;font-size:12.5px} .tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid #1f2630;color:#8b98a5;margin-left:6px}
+ .warn{color:#ffc857} .ok{color:#38d39f}
+</style></head><body><div class="wrap">
+<h1>Sentinel HSK — 실측 증거</h1>
+<div class="sub">HSK Chain Horizon Hackathon · Seoul / Track 1 · 2026-11-24 15:16 KST · chain 177</div>
+
+<div class="grid">
+  <div class="kpi"><div class="k">WHSK/USDT TWAP</div><div class="v">0.08077</div></div>
+  <div class="kpi"><div class="k">spot vs TWAP</div><div class="v">+0 bp</div></div>
+  <div class="kpi"><div class="k">pool depth</div><div class="v">$419,423</div></div>
+  <div class="kpi"><div class="k">round-trip cost</div><div class="v">76 bp</div></div>
+  <div class="kpi"><div class="k">edge hurdle</div><div class="v">96 bp</div></div>
+  <div class="kpi"><div class="k">live decision</div><div class="v warn">HOLD</div></div>
+</div>
+
+<h2>1. 실측 시장에서의 판단 (실제 기록 바 36개)</h2>
+<div class="card">
+ <svg viewBox="0 0 640 160" width="100%" preserveAspectRatio="none"><path d="M8.0,80.0 L49.6,80.0 L91.2,80.0 L132.8,80.0 L174.4,80.0 L216.0,80.0 L257.6,80.0 L299.2,80.0 L340.8,80.0 L382.4,80.0 L424.0,80.0 L465.6,80.0 L507.2,80.0 L548.8,80.0 L590.4,80.0 L632.0,80.0" fill="none" stroke="#8b98a5" stroke-width="1.8"/></svg>
+ <div class="note">거래 0건 · 수수료 0.0000 USDT · 평가액 1000.00 USDT.
+ 허들(96bp)을 넘는 이탈이 없어 거래하지 않았다. <b>이것이 이 시장에서 정직한 결과다.</b></div>
+</div>
+<table><thead><tr><th>bar</th><th>price</th><th>TWAP</th><th>dev bp</th><th>action</th><th>edge/hurdle</th><th>exec</th></tr></thead><tbody><tr><td>24</td><td>0.08054</td><td>0.08091</td><td>-46</td><td>HOLD</td><td>21/113</td><td>—</td></tr><tr><td>25</td><td>0.08053</td><td>0.08090</td><td>-46</td><td>HOLD</td><td>21/113</td><td>—</td></tr><tr><td>26</td><td>0.08051</td><td>0.08090</td><td>-48</td><td>HOLD</td><td>22/113</td><td>—</td></tr><tr><td>27</td><td>0.08050</td><td>0.08088</td><td>-48</td><td>HOLD</td><td>21/113</td><td>—</td></tr><tr><td>28</td><td>0.08099</td><td>0.08086</td><td>+15</td><td>HOLD</td><td>16/113</td><td>—</td></tr><tr><td>29</td><td>0.08100</td><td>0.08087</td><td>+16</td><td>HOLD</td><td>13/113</td><td>—</td></tr><tr><td>30</td><td>0.08101</td><td>0.08087</td><td>+17</td><td>HOLD</td><td>10/113</td><td>—</td></tr><tr><td>31</td><td>0.08101</td><td>0.08088</td><td>+16</td><td>HOLD</td><td>7/113</td><td>—</td></tr><tr><td>32</td><td>0.08101</td><td>0.08088</td><td>+16</td><td>HOLD</td><td>7/113</td><td>—</td></tr><tr><td>33</td><td>0.08101</td><td>0.08088</td><td>+16</td><td>HOLD</td><td>7/113</td><td>—</td></tr><tr><td>34</td><td>0.08053</td><td>0.08089</td><td>-44</td><td>HOLD</td><td>25/113</td><td>—</td></tr><tr><td>35</td><td>0.08053</td><td>0.08086</td><td>-42</td><td>HOLD</td><td>19/113</td><td>—</td></tr></tbody></table>
+<div class="note">마지막 12개 바. 거부 사유는 온체인 <code>recordNoTrade</code>로 남길 수 있게 설계됐다.</div>
+
+<h2>2. 기계 검증 — 합성 평균회귀 시나리오 <span class="tag">SYNTHETIC</span></h2>
+<div class="card">
+ <svg viewBox="0 0 640 160" width="100%" preserveAspectRatio="none"><path d="M8.0,130.0 L35.1,86.4 L62.3,42.3 L89.4,40.7 L116.5,119.6 L143.7,75.9 L170.8,31.6 L197.9,30.0 L225.0,109.2 L252.2,65.3 L279.3,35.6 L306.4,35.6 L333.6,35.6 L360.7,35.6 L387.8,35.6 L415.0,35.6 L442.1,35.6 L469.2,35.6 L496.3,35.6 L523.5,35.6 L550.6,35.6 L577.7,35.6 L604.9,35.6 L632.0,35.6" fill="none" stroke="#38d39f" stroke-width="1.8"/></svg>
+ <div class="note">거래 2건 · 승 1 · 실현손익 +2.1226 USDT ·
+ 선언 엣지 259bp 대비 실현 308bp
+ (신뢰도 11876bp). 성과 주장이 아니라 <b>실행·회계 기계의 증명</b>이다.</div>
+</div>
+
+<h2>3. 기계 검증 — 합성 하락추세 시나리오 <span class="tag">SYNTHETIC</span></h2>
+<div class="card">
+ <svg viewBox="0 0 640 160" width="100%" preserveAspectRatio="none"><path d="M8.0,80.0 L22.5,80.0 L37.0,80.0 L51.5,80.0 L66.0,80.0 L80.6,80.0 L95.1,80.0 L109.6,80.0 L124.1,80.0 L138.6,80.0 L153.1,80.0 L167.6,80.0 L182.1,80.0 L196.7,80.0 L211.2,80.0 L225.7,80.0 L240.2,80.0 L254.7,80.0 L269.2,80.0 L283.7,80.0 L298.2,80.0 L312.7,80.0 L327.3,80.0 L341.8,80.0 L356.3,80.0 L370.8,80.0 L385.3,80.0 L399.8,80.0 L414.3,80.0 L428.8,80.0 L443.3,80.0 L457.9,80.0 L472.4,80.0 L486.9,80.0 L501.4,80.0 L515.9,80.0 L530.4,80.0 L544.9,80.0 L559.4,80.0 L574.0,80.0 L588.5,80.0 L603.0,80.0 L617.5,80.0 L632.0,80.0" fill="none" stroke="#ffc857" stroke-width="1.8"/></svg>
+ <div class="note">거래 0건. 역추세 차단(추세 &lt; −max(25bp, 1.5×변동성))이 매수를 막았다.
+ 평균회귀 전략이 가장 잘 죽는 국면을 코드가 스스로 회피하는지 보는 패널이다.</div>
+</div>
+
+<h2>4. 컨트랙트·테스트</h2>
+<table><thead><tr><th>항목</th><th>결과</th></tr></thead><tbody><tr><td>단위·정책·fuzz 테스트</td><td>27 / 27 통과</td></tr><tr><td>불변식 테스트</td><td>5종 · 128,000회 무작위 호출 · revert 0</td></tr><tr><td>메인넷 포크 통합 테스트</td><td>3 / 3 (실제 라우터로 100 USDT 스왑)</td></tr><tr><td>에이전트(Python) 테스트</td><td>16 / 16</td></tr><tr><td>Slither</td><td>21건 → 14건 (High 1 수용: reentrancy-balance, 근거 문서화)</td></tr><tr><td>배포 비용(포크 실측)</td><td>3,498,282 gas = 1.535 HSK (≈ $0.12)</td></tr><tr><td>포크 스왑 실측</td><td>100 USDT → 1,234.08 WHSK, TWAP 공정가 대비 −32bp = 풀 수수료 0.3%</td></tr></tbody></table>
+
+<h2>5. 이 리포트를 읽는 법</h2>
+<div class="note">
+1·2·3번 패널의 숫자는 모두 같은 코드 경로(<code>agent/signals.py → policy.py → ledger.py</code>)에서 나왔다.
+다른 점은 <b>입력 가격이 실제 HSKSwap 스왑인지, 합성인지</b>뿐이다. 합성 패널은 라벨을 붙였고 성과로 주장하지 않는다.
+컨트랙트 쪽 주장(수수료 자기계산, TWAP 자기검증, 사후 잔고 검증)은 <code>forge test</code>의 포크 테스트로 검증된다.
+</div>
+</div></body></html>
