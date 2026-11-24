@@ -6,6 +6,12 @@ cache/
 __pycache__/
 *.pyc
 .pytest_cache/
-# local state and secrets
+# local state and secrets — nothing below this line may ever be pushed
 state/
 .env
+.env*
+!.env.example
+*wallet*
+*.key
+*.pem
+*.local

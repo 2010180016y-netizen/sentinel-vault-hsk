@@ -63,7 +63,8 @@ agent/                             the AI agent: rpc, market, signals, policy mi
 agent/control.py                   conversational adjustments, bounded by the on-chain policy
 agent/onchain.py                   reads the vault's own stats/credibility when SENTINEL_VAULT is set
 agent/server.py + web/index.html   conversational dashboard (stdlib HTTP, no build step)
-scripts/                           deploy (cost estimate first), backtest, paper runner, live runner, report
+scripts/                           deploy (cost estimate first), backtest, paper runner, live runner, report,
+                                   key generation (gen_keys.py — local only, prints addresses never keys)
 tests/                             48 agent tests, incl. mirror parity, intent parity (anvil), live wiring
 docs/                              facts, OSS research, expert panels (4 rounds), architecture, slither triage, submission
 oss/                               cloned upstream repositories used for research (<gitignore>d</gitignore>)
@@ -87,6 +88,24 @@ Deployment is dry by default:
 ```bash
 SENTINEL_OWNER=0x.. SENTINEL_STRATEGY_ADDR=0x.. SENTINEL_RISK_ADDR=0x.. python scripts/deploy.py
 ```
+
+### The three keys
+
+The vault has three roles and refuses to deploy when the two signers are one key
+(`strategySigner_ == riskSigner_ → InvalidConfig`; keeper of the funds and keeper of the risk check
+must not be the same key). Generate them locally, then feed the file to the deploy script:
+
+```bash
+python scripts/gen_keys.py                 # writes .env.wallets.local (mode 600, git-ignored); prints addresses only
+set -a; . ./.env.wallets.local; set +a
+python scripts/deploy.py                   # estimate; add --confirm with DEPLOYER_KEY to broadcast
+```
+
+The file matches `.gitignore` (`.env*`, `*.local`, `*wallet*`, `*.key`), no key is printed to a log,
+and nothing in the pipeline reads a key from a tracked file. The owner key is also the deployer and the
+only key that can arm, re-policy or unpause the vault; strategy and risk each sign one half of every
+EIP-712 intent, so neither can move funds alone. Losing the owner key freezes the funds — there is no
+upgrade path, on purpose.
 
 ## Live mode is off by default, on purpose
 
@@ -115,5 +134,5 @@ router, an owner-only market whitelist, and a router-report/balance-delta cross-
 
 ## License
 
-MIT for this repository's code. `lib/v3-core-08/TickMath.sol` is GPL-2.0-or-later (Uniswap); if you
+MIT for this repository's code (see `LICENSE`). `lib/v3-core-08/TickMath.sol` is GPL-2.0-or-later (Uniswap); if you
 combine it into a single deployed work, that work inherits GPL-2.0-or-later.
