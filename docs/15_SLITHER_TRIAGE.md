@@ -107,3 +107,41 @@ Slither는 "정책의 의미"를 모른다. 아래는 도구가 아니라 코드
 8. **엣지 회계의 단위 불일치** — 다리별 실행값(음수)과 라운드트립 주장(양수)을 같은 합에 넣어
    `edgeCredibilityBps()`가 사과와 오렌지를 나누고 있었다. → 주장은 진입에서, 실현은 청산에서(라운드트립 기준),
    다리별 실행은 별도 누적(`avgExecutionEdgeBps()`).
+
+---
+
+## 4. 2차 통합 컨트랙트 재실행 (2026-11-25)
+
+2026-11-25에 추가된 컨트랙트(`SwapGuardLib`, ERC-8004 3종 레지스트리, `Sentinel8004Adapter`)를 같은 설정으로
+다시 돌렸다. 명령(forge 1.10의 build-info 형식이 crytic과 맞지 않아 solc 프레임워크를 강제했다):
+
+```bash
+export PATH="$HOME/.foundry/bin:$HOME/.local/bin:$PATH"
+slither <file> --compile-force-framework solc \
+  --solc-remaps "@openzeppelin/=lib/openzeppelin-contracts/" \
+  --solc-args "--via-ir --optimize --evm-version shanghai" --filter-paths "lib/"
+```
+
+출력: `evidence/slither-2026-11-25-<Contract>.txt`
+
+| 대상 | 결과 | 판정 |
+|---|---|---|
+| `SentinelVault.sol` | **13건** (기존과 동일) | §1의 트리아지 그대로 유효 |
+| `SwapGuardLib.sol` (+`GuardHarness`) | **0건** | — |
+| `IdentityRegistry.sol` | 2건 (`unused-return`, `timestamp`) | 아래 수용 |
+| `ReputationRegistry.sol` | 1건 (`assembly`) | 아래 수용 |
+| `ValidationRegistry.sol` | 2건 (`timestamp` 오탐, `assembly` 중복) | 아래 수용 |
+| `Sentinel8004Adapter.sol` | 4건 (`reentrancy-events` 1 + 임포트 컨트랙트 중복 3) | 아래 수용 |
+
+| # | 지적 | 왜 수용하는가 |
+|---|---|---|
+| N1 | `unused-return` — `ECDSA.tryRecover`의 3번째 반환값(오류 인자)을 버린다 | 두 번째 값 `RecoverError`를 명시적으로 검사하고, 실패 시 `WalletProofInvalid`로 되돌린다. 세 번째 값은 진단용 부가정보라 의미가 없다. (기존 볼트의 동일 항목과 같은 판단) |
+| N2 | `timestamp` — `setAgentWallet`의 `deadline` 비교 | 서명 만료는 본질적으로 시간 조건이다. 채굴자 오차(수 초)로 만료가 앞당겨져도 **거부**되는 방향이라 자금 위험이 없고, 공격자가 이득을 보려면 만료를 늦춰야 하는데 그건 불가능하다. |
+| N3 | `timestamp` — `ValidationRegistry.validationRequest` | **오탐.** 플래그된 비교는 `_validations[requestHash].validatorAddress != address(0)`으로, 시간과 무관하다. slither가 같은 함수의 `lastUpdate` 대입을 인접시켜 잘못 묶었다. |
+| N4 | `assembly` — `readAllFeedback`의 배열 길이 트리밍 | `assembly ("memory-safe")`로 선언했고, 새 배열의 length 슬롯만 줄인다. 반환값을 호출자가 순회할 때 0-패딩 꼬리를 보지 않게 하려는 목적이며, 메모리 밖을 건드리지 않는다. |
+| N5 | `reentrancy-events` — `attest()`가 레지스트리 호출 후 이벤트를 낸다 | 호출 대상은 immutable로 고정된 우리 레지스트리 두 개이고, ETH/토큰 이동이 없으며, 재진입해도 `agentId`·`TAG_*`가 바뀌지 않는다. 이벤트가 재정렬돼도 오프체인 인덱서가 읽는 값은 온체인 저장값과 같다. |
+
+**남는 위험(정직하게)**: ERC-8004 구현은 EIP 본문을 그대로 옮겼지만 **외부 감사를 받지 않았다**. 특히
+`readAllFeedback`의 어셈블리 트리밍과 `getSummary`의 십진수 스케일링은 우리가 스펙의 모호한 부분을 해석한
+곳이므로, 실제 배포 전에는 감사 또는 최소한 차분 테스트가 필요하다. 이 데모에서는 레지스트리가 자금을
+보관하지 않으므로(평판·검증 기록만) 실패 반경이 자금이 아니라 표시값에 머문다.

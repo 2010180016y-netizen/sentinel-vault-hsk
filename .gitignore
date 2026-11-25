@@ -8,6 +8,9 @@ __pycache__/
 .pytest_cache/
 # local state and secrets — nothing below this line may ever be pushed
 state/
+# x402 paperwork (receipts + single-use nonces) is run state, never source
+x402_settlements.json
+*.nonces
 .env
 .env*
 !.env.example

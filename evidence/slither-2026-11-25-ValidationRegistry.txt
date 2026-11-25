@@ -1,0 +1,15 @@
+'forge config --json' running
+'/workspace/.solc-select/artifacts/solc-0.8.24/solc-0.8.24 --version' running
+'/workspace/.solc-select/artifacts/solc-0.8.24/solc-0.8.24 @openzeppelin/=lib/openzeppelin-contracts/ forge-std/=lib/forge-std/src/ v3-core-08/=lib/v3-core-08/ openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/ src/registries/ValidationRegistry.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --optimize --optimize-runs 200 --via-ir --evm-version shanghai --allow-paths .,/workspace/competitions/hsk-chain-seoul-2026/src/registries' running
+INFO:Detectors:
+Detector: timestamp
+ValidationRegistry.validationRequest(address,uint256,string,bytes32) (src/registries/ValidationRegistry.sol#70-97) uses timestamp for comparisons
+	Dangerous comparisons:
+	- _validations[requestHash].validatorAddress != address(0) (src/registries/ValidationRegistry.sol#82)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Detectors:
+Detector: assembly
+ReputationRegistry.readAllFeedback(uint256,address[],string,string,bool) (src/registries/ReputationRegistry.sol#171-229) uses assembly
+	- INLINE ASM (src/registries/ReputationRegistry.sol#220-228)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
+INFO:Slither:src/registries/ValidationRegistry.sol analyzed (3 contracts with 102 detectors), 2 result(s) found

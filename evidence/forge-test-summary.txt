@@ -1,21 +1,80 @@
-# forge test — 2026-11-24 (after the full-review pass)
+Compiling 71 files with Solc 0.8.24
+Solc 0.8.24 finished in 43.44s
+Compiler run successful with warnings:
+Warning (2519): This declaration shadows an existing declaration.
+   --> test/SentinelVault.t.sol:463:13:
+    |
+463 |             uint256 fair = _fairOut(MAX_TRADE, true);
+    |             ^^^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> test/SentinelVault.t.sol:469:9:
+    |
+469 |         uint256 fair = _fairOut(MAX_TRADE, true);
+    |         ^^^^^^^^^^^^
+
+Warning (2519): This declaration shadows an existing declaration.
+   --> test/SentinelVault.t.sol:465:13:
+    |
+465 |             SentinelVault.Intent memory it = _intent(uint128(MAX_TRADE), fair, 100, i);
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> test/SentinelVault.t.sol:471:9:
+    |
+471 |         SentinelVault.Intent memory it = _intent(uint128(MAX_TRADE), fair, 100, 99);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Warning (2018): Function state mutability can be restricted to view
+   --> test/SwapGuard.t.sol:106:5:
+    |
+106 |     function test_PriceImpactIsZeroWhenQuoteBeatsTwap() public {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+   --> test/SwapGuard.t.sol:117:5:
+    |
+117 |     function test_SlippageFloorNeverBreaksTheCeiling() public {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Ran 17 tests for test/ERC8004.t.sol:ERC8004Test
+[PASS] test_AdapterAttestsFromVaultNumbers() (gas: 750573)
+[PASS] test_AdapterRefusesToAttestAnAgentWithNoClaims() (gas: 410123)
+[PASS] test_AdapterRejectsAContractThatIsNotAVault() (gas: 90105)
+[PASS] test_AdapterValidationIsAPredicateOnTheVault() (gas: 888309)
+[PASS] test_AdapterValidationRequiresEnoughTrades() (gas: 740317)
+[PASS] test_AgentWalletNeedsAProofOfControl() (gas: 94433)
+[PASS] test_FeedbackIndexingIsPerClient() (gas: 393242)
+[PASS] test_FeedbackIsRecordedAndSummarised() (gas: 348640)
+[PASS] test_IdentityIsAnERC721WithAResolvableURI() (gas: 38692)
+[PASS] test_MetadataRoundTrip() (gas: 77427)
+[PASS] test_OnlyOwnerOrOperatorMayUpdateTheURI() (gas: 43069)
+[PASS] test_OnlyTheAgentOperatorMayRequestValidation() (gas: 54391)
+[PASS] test_ReservedAgentWalletKeyCannotBeSmuggledThroughMetadata() (gas: 41893)
+[PASS] test_RevokedFeedbackIsOmittedFromTheSummary() (gas: 354516)
+[PASS] test_TheOwnerCannotRateItsOwnAgent() (gas: 46557)
+[PASS] test_TransferClearsTheAgentWallet() (gas: 74351)
+[PASS] test_ValidationRequestAndResponse() (gas: 403622)
+Suite result: ok. 17 passed; 0 failed; 0 skipped; finished in 11.15ms (8.92ms CPU time)
+
 Ran 5 tests for test/SentinelVault.fork.t.sol:SentinelVaultForkTest
-[PASS] test_Fork_ExitSettlesTheClaim() (gas: 2135728)
-[PASS] test_Fork_RealDislocationRealSwap() (gas: 1798923)
+[PASS] test_Fork_ExitSettlesTheClaim() (gas: 2136566)
+[PASS] test_Fork_RealDislocationRealSwap() (gas: 1799805)
 [PASS] test_Fork_RevertsUnregisteredStrategy() (gas: 68890)
-[PASS] test_Fork_RevertsWhenClaimExceedsDislocation() (gas: 166430)
-[PASS] test_Fork_RevertsWhenFloorTooWide() (gas: 1265751)
-Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 9.68s (5.59s CPU time)
-Ran 40 tests for test/SentinelVault.t.sol:SentinelVaultTest
-[PASS] testFuzz_EdgeHurdleIsMonotonic(uint16) (runs: 256, μ: 268230, ~: 127675)
-[PASS] testFuzz_LegalSizesExecuteCleanly(uint64) (runs: 256, μ: 577180, ~: 577220)
-[PASS] test_Buy_ExecutesAndAccounts() (gas: 581187)
+[PASS] test_Fork_RevertsWhenClaimExceedsDislocation() (gas: 166392)
+[PASS] test_Fork_RevertsWhenFloorTooWide() (gas: 1265705)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 10.12s (5.83s CPU time)
+
+Ran 41 tests for test/SentinelVault.t.sol:SentinelVaultTest
+[PASS] testFuzz_EdgeHurdleIsMonotonic(uint16) (runs: 256, μ: 256982, ~: 127675)
+[PASS] testFuzz_LegalSizesExecuteCleanly(uint64) (runs: 256, μ: 577181, ~: 577220)
+[PASS] test_Buy_ExecutesAndAccounts() (gas: 581196)
 [PASS] test_DrawdownBlocksBuysButAllowsExits() (gas: 1475185)
+[PASS] test_ERC8004AttestationUsesTheRealVaultRecord() (gas: 7133387)
 [PASS] test_ExitIsNotBlockedByCooldown() (gas: 935314)
-[PASS] test_ExitIsNotGatedByEdgeHurdle() (gas: 774275)
+[PASS] test_ExitIsNotGatedByEdgeHurdle() (gas: 774297)
 [PASS] test_ExitLargerThanTradeCapIsAllowed() (gas: 1382466)
 [PASS] test_NoTradeConsumesNonce() (gas: 216149)
-[PASS] test_NoTradeDecisionIsRecorded() (gas: 68369)
+[PASS] test_NoTradeDecisionIsRecorded() (gas: 68391)
 [PASS] test_NoTradeRejectsHurdleBelowFloor() (gas: 43184)
 [PASS] test_NoTradeRequiresRegisteredStrategy() (gas: 39169)
 [PASS] test_OnlyOwnerCanRegisterStrategy() (gas: 33488)
@@ -23,7 +82,7 @@ Ran 40 tests for test/SentinelVault.t.sol:SentinelVaultTest
 [PASS] test_ParentBudgetAndSliceCount() (gas: 1252565)
 [PASS] test_ParentSliceCountCap() (gas: 1505369)
 [PASS] test_Revert_ConstructorRejectsAbsurdCooldown() (gas: 420461)
-[PASS] test_Revert_ConstructorRejectsZeroEdgeHurdle() (gas: 420550)
+[PASS] test_Revert_ConstructorRejectsZeroEdgeHurdle() (gas: 420572)
 [PASS] test_Revert_SetPolicyTurnsOffEdgeHurdle() (gas: 106245)
 [PASS] test_Revert_WhenClaimExceedsObservedDislocation() (gas: 216208)
 [PASS] test_Revert_WhenCooldownActive() (gas: 645528)
@@ -32,9 +91,9 @@ Ran 40 tests for test/SentinelVault.t.sol:SentinelVaultTest
 [PASS] test_Revert_WhenExpired() (gas: 71669)
 [PASS] test_Revert_WhenMinOutAboveFair() (gas: 136709)
 [PASS] test_Revert_WhenNonceReplayed() (gas: 555478)
-[PASS] test_Revert_WhenOracleNotReady() (gas: 162571)
-[PASS] test_Revert_WhenPaused() (gas: 105751)
-[PASS] test_Revert_WhenRiskSignatureMissing() (gas: 87835)
+[PASS] test_Revert_WhenOracleNotReady() (gas: 162593)
+[PASS] test_Revert_WhenPaused() (gas: 105773)
+[PASS] test_Revert_WhenRiskSignatureMissing() (gas: 87857)
 [PASS] test_Revert_WhenRouterUnderpays() (gas: 400621)
 [PASS] test_Revert_WhenSignatureCoversDifferentAmount() (gas: 86888)
 [PASS] test_Revert_WhenSlippageTooWide() (gas: 136846)
@@ -42,12 +101,20 @@ Ran 40 tests for test/SentinelVault.t.sol:SentinelVaultTest
 [PASS] test_Revert_WhenStrategyNotRegistered() (gas: 73804)
 [PASS] test_Revert_WhenTradeTooLarge() (gas: 136881)
 [PASS] test_RiskKeyCanStopButNotRestart() (gas: 74338)
-[PASS] test_Sell_RealisesPnlAndCountsWins() (gas: 869793)
-[PASS] test_SharedPolicyTable() (gas: 36306976)
+[PASS] test_Sell_RealisesPnlAndCountsWins() (gas: 869845)
+[PASS] test_SharedPolicyTable() (gas: 36306998)
 [PASS] test_StatsSurvivesOracleOutage() (gas: 639427)
-[PASS] test_StrategyKeyCannotWithdraw() (gas: 37355)
+[PASS] test_StrategyKeyCannotWithdraw() (gas: 37377)
 [PASS] test_WithdrawAssetKeepsPositionBookConsistent() (gas: 863047)
-Suite result: ok. 40 passed; 0 failed; 0 skipped; finished in 195.12ms (193.91ms CPU time)
+Suite result: ok. 41 passed; 0 failed; 0 skipped; finished in 334.14ms (333.14ms CPU time)
+
+Ran 4 tests for test/SwapGuard.t.sol:SwapGuardTest
+[PASS] test_DepthShareOfAnEmptySideIsEverything() (gas: 266)
+[PASS] test_PriceImpactIsZeroWhenQuoteBeatsTwap() (gas: 12833)
+[PASS] test_SharedGuardTable() (gas: 22526910)
+[PASS] test_SlippageFloorNeverBreaksTheCeiling() (gas: 17529)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 10.92ms (7.85ms CPU time)
+
 Ran 2 tests for test/SentinelVault.invariant.t.sol:SentinelVaultInvariantTest
 [PASS]
 SentinelVaultInvariantTest invariants:
@@ -56,6 +123,19 @@ SentinelVaultInvariantTest invariants:
 [PASS] invariant_EquityNonNegative
 [PASS] invariant_NoDanglingAllowance
 [PASS] invariant_TradeCountMatchesHandler
+ SentinelVaultInvariantTest invariants (runs: 256, calls: 128000, reverts: 0)
+
+╭--------------+----------+-------+---------+----------╮
+| Contract     | Selector | Calls | Reverts | Discards |
++======================================================+
+| VaultHandler | buy      | 42549 | 0       | 0        |
+|--------------+----------+-------+---------+----------|
+| VaultHandler | sell     | 43012 | 0       | 0        |
+|--------------+----------+-------+---------+----------|
+| VaultHandler | warp     | 42439 | 0       | 0        |
+╰--------------+----------+-------+---------+----------╯
+
 [PASS] test_HandlerActuallyTrades() (gas: 1017044)
-Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 23.13s (23.12s CPU time)
-Ran 3 test suites in 23.14s (33.00s CPU time): 47 tests passed, 0 failed, 0 skipped (47 total tests)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 27.39s (27.38s CPU time)
+
+Ran 5 test suites in 27.39s (37.86s CPU time): 69 tests passed, 0 failed, 0 skipped (69 total tests)

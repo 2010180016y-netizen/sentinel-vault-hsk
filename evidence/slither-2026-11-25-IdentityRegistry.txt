@@ -1,0 +1,14 @@
+'forge config --json' running
+'/workspace/.solc-select/artifacts/solc-0.8.24/solc-0.8.24 --version' running
+'/workspace/.solc-select/artifacts/solc-0.8.24/solc-0.8.24 @openzeppelin/=lib/openzeppelin-contracts/ forge-std/=lib/forge-std/src/ v3-core-08/=lib/v3-core-08/ openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/ src/registries/IdentityRegistry.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --optimize --optimize-runs 200 --via-ir --evm-version shanghai --allow-paths .,/workspace/competitions/hsk-chain-seoul-2026/src/registries' running
+INFO:Detectors:
+Detector: unused-return
+IdentityRegistry.setAgentWallet(uint256,address,uint256,bytes) (src/registries/IdentityRegistry.sol#118-135) ignores return value by (recovered,err,None) = ECDSA.tryRecover(digest,signature) (src/registries/IdentityRegistry.sol#129)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
+INFO:Detectors:
+Detector: timestamp
+IdentityRegistry.setAgentWallet(uint256,address,uint256,bytes) (src/registries/IdentityRegistry.sol#118-135) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp > deadline (src/registries/IdentityRegistry.sol#123)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Slither:src/registries/IdentityRegistry.sol analyzed (25 contracts with 102 detectors), 2 result(s) found

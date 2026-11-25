@@ -1,0 +1,97 @@
+'forge config --json' running
+'/workspace/.solc-select/artifacts/solc-0.8.24/solc-0.8.24 --version' running
+'/workspace/.solc-select/artifacts/solc-0.8.24/solc-0.8.24 @openzeppelin/=lib/openzeppelin-contracts/ forge-std/=lib/forge-std/src/ v3-core-08/=lib/v3-core-08/ openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/ src/SentinelVault.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --optimize --optimize-runs 200 --via-ir --evm-version shanghai --allow-paths .,/workspace/competitions/hsk-chain-seoul-2026/src' running
+INFO:Detectors:
+Detector: reentrancy-balance
+Reentrancy in SentinelVault._swap(SentinelVault.Intent) (src/SentinelVault.sol#540-566):
+	External call allowing reentrancy:
+	- results = IV3SwapRouter02(router).multicall(it.deadline,calls) (src/SentinelVault.sol#558)
+	Balance read before the call:
+	- balanceBefore = IERC20(it.tokenOut).balanceOf(address(this)) (src/SentinelVault.sol#544)
+	Possible stale balance used after the call in a condition:
+	- reported != received (src/SentinelVault.sol#564)
+		- stale variable `received`
+	- received < it.minAmountOut (src/SentinelVault.sol#565)
+		- stale variable `received`
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities
+INFO:Detectors:
+Detector: reentrancy-no-eth
+Reentrancy in SentinelVault.executeIntent(SentinelVault.Intent,bytes,bytes) (src/SentinelVault.sol#424-439):
+	External calls:
+	- amountOut = _swap(it) (src/SentinelVault.sol#437)
+		- results = IV3SwapRouter02(router).multicall(it.deadline,calls) (src/SentinelVault.sol#558)
+	State variables written after the call(s):
+	- _settle(it,isBuy,notionalQuote,fairOut,amountOut) (src/SentinelVault.sol#438)
+		- highWater = eqAfter (src/SentinelVault.sol#608)
+	SentinelVault.highWater (src/SentinelVault.sol#151) can be used in cross function reentrancies:
+	- SentinelVault.highWater (src/SentinelVault.sol#151)
+	- SentinelVault.stats() (src/SentinelVault.sol#700-715)
+	- _settle(it,isBuy,notionalQuote,fairOut,amountOut) (src/SentinelVault.sol#438)
+		- pos.qty += amountOut (src/SentinelVault.sol#588)
+		- pos.costQuote += notionalQuote (src/SentinelVault.sol#589)
+		- pos.qty -= it.amountIn (src/SentinelVault.sol#601)
+		- pos.costQuote -= costPortion (src/SentinelVault.sol#602)
+	SentinelVault.positions (src/SentinelVault.sol#146) can be used in cross function reentrancies:
+	- SentinelVault.positions (src/SentinelVault.sol#146)
+	- SentinelVault.tryEquity() (src/SentinelVault.sol#662-689)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-2
+INFO:Detectors:
+Detector: calls-loop
+SentinelVault.tryEquity() (src/SentinelVault.sol#662-689) has external calls inside a loop: v = this.holdingValue(m.pool,asset) (src/SentinelVault.sol#674-679)
+	Calls stack containing the loop:
+		SentinelVault.executeIntent(SentinelVault.Intent,bytes,bytes)
+		SentinelVault._enforceBudget(SentinelVault.Intent,bool,uint256)
+		SentinelVault.equity()
+SentinelVault.tryEquity() (src/SentinelVault.sol#662-689) has external calls inside a loop: v = this.holdingValue(m.pool,asset) (src/SentinelVault.sol#674-679)
+	Calls stack containing the loop:
+		SentinelVault.equity()
+SentinelVault.tryEquity() (src/SentinelVault.sol#662-689) has external calls inside a loop: v = this.holdingValue(m.pool,asset) (src/SentinelVault.sol#674-679)
+SentinelVault.tryEquity() (src/SentinelVault.sol#662-689) has external calls inside a loop: v = this.holdingValue(m.pool,asset) (src/SentinelVault.sol#674-679)
+	Calls stack containing the loop:
+		SentinelVault.stats()
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation/#calls-inside-a-loop
+INFO:Detectors:
+Detector: reentrancy-benign
+Reentrancy in SentinelVault.executeIntent(SentinelVault.Intent,bytes,bytes) (src/SentinelVault.sol#424-439):
+	External calls:
+	- amountOut = _swap(it) (src/SentinelVault.sol#437)
+		- results = IV3SwapRouter02(router).multicall(it.deadline,calls) (src/SentinelVault.sol#558)
+	State variables written after the call(s):
+	- _settle(it,isBuy,notionalQuote,fairOut,amountOut) (src/SentinelVault.sol#438)
+		- declaredEdgeSumBps += int256(uint256(it.declaredEdgeBps)) (src/SentinelVault.sol#587)
+	- _settle(it,isBuy,notionalQuote,fairOut,amountOut) (src/SentinelVault.sol#438)
+		- executionEdgeSumBps += legEdgeBps (src/SentinelVault.sol#583)
+	- _settle(it,isBuy,notionalQuote,fairOut,amountOut) (src/SentinelVault.sol#438)
+		- feesPaidQuote += (uint256(it.amountIn) * it.fee) / 1_000_000 (src/SentinelVault.sol#590)
+		- feesPaidQuote += (fairOut * it.fee) / 1_000_000 (src/SentinelVault.sol#603)
+	- _settle(it,isBuy,notionalQuote,fairOut,amountOut) (src/SentinelVault.sol#438)
+		- realizedEdgeSumBps += (pnl * int256(uint256(BPS))) / int256(costPortion) (src/SentinelVault.sol#599)
+	- _settle(it,isBuy,notionalQuote,fairOut,amountOut) (src/SentinelVault.sol#438)
+		- realizedPnlQuote += pnl (src/SentinelVault.sol#595)
+	- _settle(it,isBuy,notionalQuote,fairOut,amountOut) (src/SentinelVault.sol#438)
+		- tradeCount += 1 (src/SentinelVault.sol#605)
+	- _settle(it,isBuy,notionalQuote,fairOut,amountOut) (src/SentinelVault.sol#438)
+		- winCount += 1 (src/SentinelVault.sol#596)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
+INFO:Detectors:
+Detector: timestamp
+SentinelVault.recordNoTrade(bytes32,uint16,uint16,bytes32,uint64) (src/SentinelVault.sol#400-413) uses timestamp for comparisons
+	Dangerous comparisons:
+	- strategyRegisteredAt[strategyHash] < 1 (src/SentinelVault.sol#408)
+SentinelVault._authorise(SentinelVault.Intent,bytes,bytes) (src/SentinelVault.sol#443-476) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp > it.deadline (src/SentinelVault.sol#448)
+	- strategyRegisteredAt[it.strategyHash] < 1 (src/SentinelVault.sol#450)
+SentinelVault._enforceBudget(SentinelVault.Intent,bool,uint256) (src/SentinelVault.sol#498-535) uses timestamp for comparisons
+	Dangerous comparisons:
+	- isBuy && lastBuyAt != 0 && block.timestamp < lastBuyAt + policy.cooldown (src/SentinelVault.sol#522)
+SentinelVault._rollWindow() (src/SentinelVault.sol#753-758) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp >= windowStart + 86400 (src/SentinelVault.sol#754)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Detectors:
+Detector: cyclomatic-complexity
+SentinelVault._authorise(SentinelVault.Intent,bytes,bytes) (src/SentinelVault.sol#443-476) has a high cyclomatic complexity (15).
+SentinelVault._enforceBudget(SentinelVault.Intent,bool,uint256) (src/SentinelVault.sol#498-535) has a high cyclomatic complexity (12).
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#cyclomatic-complexity
+INFO:Slither:src/SentinelVault.sol analyzed (21 contracts with 102 detectors), 13 result(s) found

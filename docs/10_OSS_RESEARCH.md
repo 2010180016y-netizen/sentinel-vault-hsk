@@ -44,6 +44,17 @@
 
 부가로, npm tarball까지 포함해 12개 저장소·패키지를 실제로 내려받아 코드를 열었다. 다만 아래 3개는 "설치·실행"까지는 가지 않고 소스·문서 분석에 머물렀다(정직하게 구분): AP2 샘플 실행(Google API Key 필요), x402 facilitator 실행(별도 서비스 필요), Roles v3 배포(미출시 버전).
 
+### 2.1 2차 설치·통합 (2026-11-25) — 코드로 들어간 4건
+
+| # | 저장소/표준 | 커밋 | 우리 코드에 들어간 형태 |
+|---|---|---|---|
+| 15 | [elizaOS/eliza](https://github.com/elizaOS/eliza) | `4ad4af8` | `agent/runtime/` (Action/Provider/Evaluator/Plugin) + `agent/plugins/sentinel.py` — 채팅 경로가 런타임을 지난다 |
+| 16 | [Uniswap/uniswap-ai](https://github.com/Uniswap/uniswap-ai) | `989dbaf` | `agent/guards.py` + `src/libraries/SwapGuardLib.sol` — 같은 가드 13개, 공유 표 19 시나리오 |
+| 17 | [coinbase/x402](https://github.com/coinbase/x402) | `0e6e8c5` | `agent/x402/` + `agent/premium.py` — EIP-3009 검증·1회용 nonce·HTTP 402 게이트 (정산은 paper, 메인넷 금지) |
+| 18 | ERC-8004 Trustless Agents | EIP 본문 | `src/registries/*` + `src/Sentinel8004Adapter.sol` + `agent/registry8004.py` |
+
+상세 구현·테스트·의도적 변경점은 **`docs/12_OSS_INTEGRATION.md`** 에 있다. 이 문서(§3~§4)는 1차 리서치 기록으로 남긴다.
+
 ---
 
 ## 3. 코드에서 직접 확인한 핵심 사실 (설계를 바꾼 것들)
@@ -105,7 +116,7 @@ Zodiac은 Avatar(자금 보관) / Module(의사결정) / Modifier(권한 제한)
 | Safe의 2-of-N 임계 서명 (온체인 승인 트랜잭션 필요) | 매매마다 온체인 승인 tx가 하나 더 붙어 가스 2배 | **오프체인 EIP-712 이중 서명 + 온체인 단일 실행**. 두 키의 서명을 한 트랜잭션에서 검증 → 승인 지연 0, 가스 1회 |
 | Zodiac Roles의 온체인 역할/권한 저장 구조 | 권한 1건 변경에 다수 트랜잭션, 가스·복잡도 큼 | **정책을 단일 struct로 압축**해 `setPolicy` 1회로 교체, 변경은 이벤트로 감사 |
 | Uniswap `OracleLibrary.consult` (periphery 의존) | periphery 전체 의존성 유입 | 필요한 부분(TickMath + consult 계산)만 **자체 라이브러리로 내재화** |
-| x402 facilitator (별도 서비스 신뢰) | 외부 서비스 다운 시 결제 불가 | Track 1에서는 결제 계층을 쓰지 않고, **인텐트 서명·재전송 방지 semantics만 차용** |
+| x402 facilitator (별도 서비스 신뢰) | 외부 서비스 다운 시 결제 불가 | **검증 계층은 직접 구현**(EIP-3009 서명·nonce·유효창), 정산은 paper. 메인넷 브로드캐스트는 코드에서 금지(`MainnetSpendForbidden`) |
 | AgentKit (Python/TS 프레임워크 전체) | 프레임워크 종속, 해커톤 심사에서 "우리 코드"가 흐려짐 | **패턴(액션 스키마·네트워크 게이팅)만 차용**하고 코어는 자체 구현 |
 | Pyth 등 외부 오라클 가격 | HSK 메인넷에 Pyth 피드가 없음(확인 필요) + 외부 의존 | **HSKSwap 풀 자체 TWAP**을 기준가로 사용. 외부 오라클 없이 자기완결적 |
 

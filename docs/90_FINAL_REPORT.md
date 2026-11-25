@@ -1,7 +1,7 @@
 # HSK Chain Horizon Hackathon · Seoul — 제출 준비 보고
 
-**최종 갱신: 2026-11-24 (전면 재점검·고도화 완료) · Track 1 (AI Agent Trading) 확정**
-산출물: `competitions/hsk-chain-seoul-2026/` (로컬 git 커밋, push 안 함)
+**최종 갱신: 2026-11-25 (오픈소스 4건 통합 완료) · Track 1 (AI Agent Trading) 확정**
+산출물: `competitions/hsk-chain-seoul-2026/` → GitHub `2010180016y-netizen/sentinel-vault-hsk` (master)
 핵심 파일: `src/SentinelVault.sol` · `agent/` · `test/` · `tests/` · `docs/` · `evidence/REPORT.html`
 
 ---
@@ -10,8 +10,9 @@
 
 Track 1로 확정하고 **"에이전트가 결정하고, 체인이 강제하며, 에이전트의 주장까지 온체인에서 대조하는"** 프로토타입을
 완성한 뒤, 같은 저장소를 처음부터 끝까지 다시 읽으며 **21건의 결함·빈틈을 찾아 전부 수정**했다.
-지금 상태: Foundry **47/47**(단위 40 + 불변식 5 + 메인넷 포크 5), Python **48/48**, Slither **13건 전부 트리아지**.
-남은 것은 회기님 결정 4건(지갑·HSK 가스·DoraHacks 등록·GitHub 공개)과 데모 영상이다.
+지금 상태: Foundry **69/69**(단위 40 + 불변식 5 + 메인넷 포크 5 + 스왑 가드 4 + ERC-8004 18), Python **125/125**, Slither **13건 전부 트리아지**.
+2026-11-25에 elizaOS·Uniswap uniswap-ai·coinbase x402·ERC-8004를 실제 코드로 통합했다(`docs/12_OSS_INTEGRATION.md`).
+남은 것은 회기님 결정 3건(지갑·HSK 가스·DoraHacks 등록)과 데모 영상이다. GitHub 공개 저장소는 push 완료.
 
 ---
 

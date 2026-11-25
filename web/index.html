@@ -87,6 +87,15 @@
     <div class="row"><span class="k">edge hurdle</span><span class="v" id="p5">—</span></div>
   </section>
 
+  <section class="card">
+    <h2>Swap guards (Uniswap skills)</h2>
+    <div class="row"><span class="k">mode</span><span class="v" id="gmode">—</span></div>
+    <div class="row"><span class="k">kill switch</span><span class="v" id="gkill">—</span></div>
+    <div class="row"><span class="k">per run / period</span><span class="v" id="gcaps">—</span></div>
+    <div class="row"><span class="k">used this period</span><span class="v" id="gspent">—</span></div>
+    <div class="row"><span class="k">impact cap · depth floor</span><span class="v" id="glimits">—</span></div>
+  </section>
+
   <section class="card wide">
     <h2>Ask the agent</h2>
     <div class="chat">
@@ -152,6 +161,16 @@ async function refresh() {
   $("p3").textContent = s.policy.max_drawdown_bps + "bp";
   $("p4").textContent = s.policy.max_slippage_bps + "bp";
   $("p5").textContent = s.policy.min_edge_bps + "bp";
+  if (s.guards) {
+    $("gmode").textContent = s.guards.mode;
+    $("gkill").textContent = s.guards.kill_switch ? "ON" : "off";
+    $("gcaps").textContent = fmt(s.guards.per_run_cap_quote, 0) + " / " + fmt(s.guards.per_period_cap_quote, 0) + " USDT";
+    $("gspent").textContent = fmt(s.guards.period_spent_quote, 2) + " USDT (" + s.guards.period + ")";
+    $("glimits").textContent = s.guards.max_price_impact_bps + "bp · $" + fmt(s.guards.min_quote_depth_usd, 0);
+  }
+  if (s.runtime) {
+    $("gmode").title = s.runtime.plugins.join(",") + " · actions " + s.runtime.actions.length + " · providers " + s.runtime.providers.length;
+  }
   if (s.onchain && s.onchain.ok) {
     $("hash").textContent = "strategy " + (s.strategy_hash || "").slice(0, 10) + "… · vault " + s.onchain.address.slice(0, 8) + "…";
   }

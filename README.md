@@ -34,6 +34,22 @@ move funds alone), fair value derived from the pool oracle instead of trusting a
 `factory.getPool` pool verification, a post-trade balance re-check that must agree with the router's
 report, allowance hygiene, an exit that is never blocked by an entry guard, and a kill switch.
 
+## Four standards, integrated (not name-dropped)
+
+Each of these is real code with tests that fail if it regresses; the full record is
+[`docs/12_OSS_INTEGRATION.md`](docs/12_OSS_INTEGRATION.md).
+
+| Standard / OSS | What actually runs | Where |
+|---|---|---|
+| **elizaOS/eliza** plugin model | Agent = runtime + plugin: 6 providers compose the state, 9 actions do the work (each with a validate gate and a parameter schema), 1 evaluator records the outcome. `chat()` is routed through it. | `agent/runtime/`, `agent/plugins/sentinel.py` |
+| **Uniswap/uniswap-ai** swap skills | 13 pre-trade guards (depth floor $100k, order ≤20% of depth, price impact, 5% slippage ceiling, per-run/per-period caps, honeypot exit, quote freshness, kill switch, "autonomous requires every guardrail") implemented **twice** — Python and `SwapGuardLib.sol` — over one shared 19-scenario table. The agent refuses *before* building an intent, and the refusal is recorded. | `agent/guards.py`, `src/libraries/SwapGuardLib.sol` |
+| **coinbase/x402** v2 | HTTP 402 paywall with the real header transport, EIP-3009 authorization verified by signature recovery, single-use nonces, verify-then-settle. The agent pays 0.001 USDT for a premium risk feed from its own budget. Mainnet settlement is **forbidden in code**. | `agent/x402/`, `agent/premium.py`, `/api/premium/edge` |
+| **ERC-8004** Trustless Agents | Identity (ERC-721 + metadata + wallet proof), Reputation, Validation registries, and an adapter that attests the vault's own `edgeCredibilityBps()` and validates only when trade count, oracle health and credibility clear a threshold. | `src/registries/`, `src/Sentinel8004Adapter.sol` |
+
+Why a guard layer at all, when the vault already has limits: the vault answers "may this signed intent
+execute?". The guards answer "should this agent be in this pool at this size at all?" — and their
+no-trade is written down like any other decision.
+
 ## Measured, not asserted
 
 | Fact | Value | How |
@@ -55,17 +71,25 @@ a dislocation pays. Synthetic scenarios are labelled `SYNTHETIC` and are never p
 ```
 src/SentinelVault.sol              policy kernel — immutable, no proxy, no owner override of a signed intent
 src/libraries/TwapLib.sol          TWAP consult + tick→price (fails closed)
+src/libraries/SwapGuardLib.sol     Uniswap-skill swap guards as EVM predicates (parity: agent/guards.py)
 src/interfaces/IHskSwap.sol        SwapRouter02 / Factory / Pool (from verified Blockscout ABIs)
-test/                              40 unit/policy/fuzz + 5 invariants (128k calls) + 5 mainnet-fork tests
+src/registries/                    ERC-8004 Identity / Reputation / Validation registries
+src/Sentinel8004Adapter.sol        attests the vault's record; validates against a threshold, not a claim
+test/                              41 unit/policy/fuzz (incl. 1 ERC-8004 live-vault test) + 5 invariants (128k calls)
+                                   + 5 fork + 4 guard + 17 ERC-8004
 test/fixtures/policy_scenarios.json  the shared policy table — read by Solidity AND Python
-agent/                             the AI agent: rpc, market, signals, policy mirror, control, EIP-712 intent,
-                                   ledger, executor, onchain view, core, server
+test/fixtures/guard_scenarios.json   the shared guard table — read by SwapGuardLib AND agent/guards.py
+agent/                             the AI agent: rpc, market, signals, policy mirror, guards, control, EIP-712
+                                   intent, ledger, executor, onchain view, core, server, x402, premium, registry8004
+agent/runtime/ + agent/plugins/     elizaOS-shaped runtime + the sentinel-hsk plugin
 agent/control.py                   conversational adjustments, bounded by the on-chain policy
 agent/onchain.py                   reads the vault's own stats/credibility when SENTINEL_VAULT is set
+agent/guards.py                    swap guards adopted from Uniswap's agent skills (refuses before signing)
+agent/x402/ + agent/premium.py     x402 v2 paywall: EIP-3009 verification, single-use nonces, budget
 agent/server.py + web/index.html   conversational dashboard (stdlib HTTP, no build step)
 scripts/                           deploy (cost estimate first), backtest, paper runner, live runner, report,
                                    key generation (gen_keys.py — local only, prints addresses never keys)
-tests/                             48 agent tests, incl. mirror parity, intent parity (anvil), live wiring
+tests/                             125 agent tests, incl. mirror parity, guard parity, x402 round trip, runtime, live wiring
 docs/                              facts, OSS research, expert panels (4 rounds), architecture, slither triage, submission
 oss/                               cloned upstream repositories used for research (<gitignore>d</gitignore>)
 ```
@@ -76,11 +100,13 @@ oss/                               cloned upstream repositories used for researc
 python3 -m pip install -r requirements.txt
 export PATH="$HOME/.foundry/bin:$PATH"
 
-forge test                          # 47 tests: contracts incl. mainnet-fork integration (needs network)
-python3 -m pytest tests/ -q         # 48 agent tests (the anvil parity test needs forge/anvil)
+forge test                          # 69 tests: contracts incl. mainnet-fork integration (needs network)
+python3 -m pytest tests/ -q         # 125 agent tests (the anvil parity test needs forge/anvil)
 python3 scripts/backtest.py         # real bars + labelled synthetic panels
 python3 scripts/run_paper.py --cycles 3
 python3 -m agent.server --port 8765 # then open http://127.0.0.1:8765
+# the paid endpoint appears when an operator address is configured:
+SENTINEL_X402_PAY_TO=0x.. python3 -m agent.server --port 8765   # /api/premium/edge answers 402 first
 ```
 
 Deployment is dry by default:

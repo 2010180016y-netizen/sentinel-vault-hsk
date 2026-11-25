@@ -21,6 +21,9 @@ import os
 from .config import Settings
 from .core import SentinelAgent
 from .ledger import Ledger
+from .premium import PremiumConfig, PremiumService
+from .x402 import PAYMENT_RESPONSE_HEADER, PAYMENT_SIGNATURE_HEADER, encode_header
+from .x402.service import PAYMENT_REQUIRED_HEADER
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 WEB = os.path.join(os.path.dirname(HERE), "web")
@@ -29,6 +32,7 @@ _agent: SentinelAgent | None = None
 _lock = threading.Lock()
 _last_observe = 0.0
 OBSERVE_TTL_S = 5.0
+_premium: PremiumService | None = None
 
 
 def get_agent(state_path: str) -> SentinelAgent:
@@ -43,6 +47,17 @@ def get_agent(state_path: str) -> SentinelAgent:
     return _agent
 
 
+def get_premium(state_path: str) -> PremiumService | None:
+    """The paid endpoint is only mounted when an operator configured a payee address."""
+    global _premium
+    if _premium is None:
+        cfg = PremiumConfig.from_env()
+        if cfg.requirements is None:
+            return None
+        _premium = PremiumService(get_agent(state_path), cfg, state_path=os.path.join(os.path.dirname(state_path) or ".", "x402_settlements.json"))
+    return _premium
+
+
 class Handler(SimpleHTTPRequestHandler):
     state_path = "state/ledger.json"
 
@@ -54,6 +69,16 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _x402(self, payload: dict, code: int, extra_headers: dict | None = None) -> None:
+        body = json.dumps(payload, ensure_ascii=False, default=str).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        for k, v in (extra_headers or {}).items():
+            self.send_header(k, v)
         self.end_headers()
         self.wfile.write(body)
 
@@ -79,8 +104,35 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/ask":
             q = (parse_qs(parsed.query).get("q") or [""])[0]
             with _lock:
-                return self._json({"answer": agent.answer(unquote(q))})
+                return self._json({"answer": agent.chat(unquote(q))})
+        if parsed.path == "/api/premium/edge":
+            return self._paid(agent, parsed)
         return super().do_GET()
+
+    def _paid(self, agent: SentinelAgent, parsed) -> None:
+        """x402 v2: 402 + PAYMENT-REQUIRED, then verify -> settle -> 200 + PAYMENT-RESPONSE."""
+        with _lock:
+            service = get_premium(self.state_path)
+            if service is None:
+                cfg = PremiumConfig.from_env()
+                return self._json(
+                    {"error": "x402 endpoint not configured", "hint": cfg.reason, "spec": "coinbase/x402 v2"},
+                    503,
+                )
+            base = f"http://{self.headers.get('Host', '127.0.0.1')}"
+            header = self.headers.get(PAYMENT_SIGNATURE_HEADER, "")
+            if not header:
+                body = service.challenge(base, "PAYMENT-SIGNATURE header is required")
+                return self._x402(
+                    body, 402, {PAYMENT_REQUIRED_HEADER: encode_header(body)}
+                )
+            settlement, data = service.settle(header, base)
+            response_header = {PAYMENT_RESPONSE_HEADER: encode_header(settlement.as_dict())}
+            if not settlement.success:
+                body = service.challenge(base, settlement.error_reason)
+                response_header[PAYMENT_REQUIRED_HEADER] = encode_header(body)
+                return self._x402(body, 402, response_header)
+            return self._x402(data or {}, 200, response_header)
 
     def log_message(self, fmt: str, *args) -> None:  # keep the terminal quiet
         pass

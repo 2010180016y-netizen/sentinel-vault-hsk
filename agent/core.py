@@ -12,6 +12,7 @@ This is the loop a judge can follow in one sitting:
 
 from __future__ import annotations
 
+import os
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -19,12 +20,15 @@ from typing import Any
 from .config import BPS, DEFAULT_MARKET, MARKETS, MARKET_STATS, Market, RiskPolicy, Settings, Strategy
 from .control import Adjustment, Controls, apply_adjustment
 from .executor import ChainExecutor, PaperExecutor
+from .guards import GuardRequest, GuardState, period_key, preflight
 from .intent import Intent, strategy_id
 from .ledger import Ledger
 from .market import Bar, DexClient, PoolState
 from .onchain import VaultView
 from .policy import AccountState, MarketState, build_min_out, check
+from .plugins import build_plugin
 from .rpc import Rpc
+from .runtime import AgentRuntime
 from .signals import Decision, build_features, decide
 
 
@@ -68,6 +72,7 @@ class SentinelAgent:
         ledger: Ledger | None = None,
         executor=None,
         vault_view: VaultView | None = None,
+        guards: GuardState | None = None,
     ) -> None:
         self.settings = settings or Settings.from_env()
         self.rpc = rpc or Rpc(self.settings.chain.rpc_url, self.settings.chain.chain_id)
@@ -80,10 +85,28 @@ class SentinelAgent:
         self.executor = executor or PaperExecutor(self.dex, self.ledger, self.settings.addresses)
         self.market: Market = MARKETS[self.controls.asset]
         self.last_observation: Observation | None = None
+        self.last_observed_at: int = 0
         self.last_decision: Decision | None = None
+        # Uniswap-skill guardrails (agent/guards.py). They sit in front of the policy mirror: the
+        # vault decides whether a *signed* intent may execute, these decide whether the agent should
+        # even build one, and their refusals are recorded like any other no-trade decision.
+        self.guard_state: GuardState = guards or self._default_guards()
+        # elizaOS-style runtime: providers compose state, actions do the work, evaluators record it.
+        self._runtime: AgentRuntime | None = None
         self.vault_view = vault_view
         if self.vault_view is None and self.settings.vault:
             self.vault_view = VaultView(self.rpc, self.settings.vault)
+
+    def _default_guards(self) -> GuardState:
+        a = self.settings.addresses
+        allowlist = {a.quote, a.whsk, a.weth, a.wbtc, a.usdc}
+        mode = os.environ.get("SENTINEL_GUARD_MODE", "confirm")
+        return GuardState.for_market(
+            allowlist,
+            per_run_cap_quote=self.policy.max_trade_notional / 1e6,
+            per_period_cap_quote=self.policy.max_daily_notional / 1e6,
+            mode=mode,
+        )
 
     # ------------------------------------------------------------------ observe
 
@@ -112,6 +135,7 @@ class SentinelAgent:
                 return 0.0
             return max(0.0, (fair - quoted) / fair * BPS)
 
+        self.last_observed_at = int(time.time())
         obs = Observation(
             market=m,
             state=state,
@@ -155,7 +179,78 @@ class SentinelAgent:
         self.last_decision = d
         return d
 
+    # ------------------------------------------------------------------ conversational surface (runtime)
+
+    @property
+    def runtime(self) -> AgentRuntime:
+        """The elizaOS-shaped runtime, built once and bound to this agent instance."""
+        if self._runtime is None:
+            rt = AgentRuntime(agent_id="sentinel-hsk")
+            rt.register_plugin(build_plugin(self))
+            self._runtime = rt
+        return self._runtime
+
+    def chat(self, text: str) -> str:
+        """Every sentence goes through the runtime; a sentence no action claims falls back to the
+        legacy free-text answers (`answer`), so nothing that worked before stops working."""
+        res = self.runtime.process(text)
+        if not res.matched:
+            return self.answer(text)
+        if not res.result.success:
+            return "⛔ " + (res.result.text or res.result.error)
+        return res.result.text
+
     # ------------------------------------------------------------------ act
+
+    def _guard_request(
+        self,
+        obs: Observation,
+        *,
+        is_buy: bool,
+        notional_quote: float,
+        quoted_out: int,
+        fair_out: int,
+        ts: int,
+    ) -> GuardRequest:
+        """Assemble what `agent/guards.py` needs from the observation we already paid for."""
+        m = self.market
+        a = self.settings.addresses
+        pos = self.ledger.positions.get(m.asset)
+        amount_in = int(round(notional_quote * 1e6)) if is_buy else (pos.qty if pos else 0)
+        return GuardRequest(
+            token_in=a.quote if is_buy else m.asset,
+            token_out=m.asset if is_buy else a.quote,
+            amount_in=amount_in,
+            notional_quote=notional_quote,
+            quoted_out=int(quoted_out or 0),
+            fair_out=int(fair_out or 0),
+            quote_depth_quote=obs.state.depth_quote(),
+            sell_quote=int(obs.quote_sell) if is_buy else int(quoted_out or 0),
+            quote_age_s=max(0, ts - self.last_observed_at),
+            slippage_bps=self.policy.max_slippage_bps,
+            period_spent_quote=self.guard_state.spent(period_key(ts)),
+            is_buy=is_buy,
+        )
+
+    def guards_summary(self) -> dict[str, Any]:
+        """The guard state a judge (or the dashboard) can read without asking the agent."""
+        period = period_key(int(time.time()))
+        lim = self.guard_state.limits_for(period)
+        return {
+            "mode": lim.mode,
+            "kill_switch": lim.kill_switch,
+            "dry_run_done": lim.dry_run_done,
+            "per_run_cap_quote": lim.per_run_cap_quote,
+            "per_period_cap_quote": lim.per_period_cap_quote,
+            "period": period,
+            "period_spent_quote": round(self.guard_state.spent(period), 4),
+            "max_price_impact_bps": lim.max_price_impact_bps,
+            "max_depth_share_bps": lim.max_depth_share_bps,
+            "min_quote_depth_usd": lim.min_quote_depth_usd,
+            "max_quote_age_s": lim.max_quote_age_s,
+            "max_slippage_bps": lim.max_slippage_bps,
+            "refusals": self.guard_state.refusals[-5:],
+        }
 
     def _market_state(self, obs: Observation, fair_out: int, quoted_out: int) -> MarketState:
         return MarketState(
@@ -245,6 +340,34 @@ class SentinelAgent:
             record["onchain_refusal"] = self._record_refusal(d)
             return record
 
+        # --- swap guards (Uniswap skills, agent/guards.py) -------------------------------------
+        # The policy mirror above answers "would the vault revert?". These answer "should this agent
+        # be touching this pool with this size at all": depth, impact, slippage ceiling, quote
+        # freshness, spend caps, honeypot exit, kill switch, and the autonomy arming rule.
+        period = period_key(ts)
+        guard_verdict = preflight(
+            self._guard_request(
+                obs,
+                is_buy=is_buy,
+                notional_quote=notional_quote,
+                quoted_out=obs.quote_buy if is_buy else obs.quote_sell,
+                fair_out=fair_out,
+                ts=ts,
+            ),
+            self.guard_state.limits_for(period),
+        )
+        record["guards"] = guard_verdict.as_dict()
+        if not guard_verdict.ok:
+            record["executed"] = False
+            self.guard_state.record_refusal(
+                period, guard_verdict, {"ts": ts, "action": d.action, "notional_quote": notional_quote}
+            )
+            self.ledger.record_decision(record)
+            self.ledger.mark(ts, {m.asset: obs.state.twap_quote_per_base})
+            record["explain"] = f"refused by swap guards: {guard_verdict.code} — {guard_verdict.detail}"
+            record["onchain_refusal"] = self._record_refusal(d, reason=f"GUARD_{guard_verdict.code}")
+            return record
+
         # --- execute ---
         tx = ""
         if isinstance(self.executor, PaperExecutor):
@@ -302,6 +425,8 @@ class SentinelAgent:
             )
         equity = self.ledger.mark(ts, {m.asset: obs.state.twap_quote_per_base})
         trade.equity_after = equity
+        if is_buy:
+            self.guard_state.charge(period, d.size_quote)
 
         record.update(
             {
@@ -320,11 +445,11 @@ class SentinelAgent:
         self.ledger.record_decision(record)
         return record
 
-    def _record_refusal(self, d: Decision) -> str:
+    def _record_refusal(self, d: Decision, reason: str | None = None) -> str:
         """Write a refusal where a trade would have been written, when running live."""
         if not isinstance(self.executor, ChainExecutor) or not self.settings.record_no_trade:
             return ""
-        reason = d.reasons[0] if d.reasons else "no reason recorded"
+        reason = reason or (d.reasons[0] if d.reasons else "no reason recorded")
         try:
             res = self.executor.record_no_trade(
                 strategy_hash=self.strategy_hash,
@@ -393,6 +518,13 @@ class SentinelAgent:
                 "cooldown_s": self.policy.cooldown_s,
             },
             "controls": self.controls.as_dict(),
+            "guards": self.guards_summary(),
+            "runtime": {
+                "plugins": list(self.runtime.plugins),
+                "actions": [a["name"] for a in self.runtime.catalog()],
+                "providers": self.runtime.provider_names(),
+                "memory": len(self.runtime.memory),
+            },
             "market_menu": {k: {"quote_depth_usd": v["quote_depth_usd"], "impact_bps_at_120": v["impact_bps_at_120"]} for k, v in MARKET_STATS.items()},
             "metrics": self.ledger.metrics(),
             "onchain": self.vault_view.summary() if self.vault_view else {"ok": False, "error": "SENTINEL_VAULT not set"},
@@ -460,6 +592,14 @@ class SentinelAgent:
                 f"최대낙폭 {mt['max_drawdown_bps']:.0f}bp, 승률 {mt['hit_rate']*100:.0f}%, "
                 f"선언 엣지 {mt['declared_edge_sum_bps']:.0f}bp → 실현 {mt['realised_edge_sum_bps']:.0f}bp "
                 f"(신뢰도 {mt['edge_credibility_bps']:.0f}bp) · 다리당 실행 {mt['avg_execution_edge_bps']:+.1f}bp"
+            )
+        if any(k in q for k in ("가드", "guard", "슬리피지", "slippage", "임팩트", "impact")):
+            g = self.guards_summary()
+            return (
+                f"스왑 가드(Uniswap 스킬) 모드 {g['mode']} · 킬스위치 {'ON' if g['kill_switch'] else 'OFF'} · "
+                f"건당 {g['per_run_cap_quote']:.0f} / 기간 {g['per_period_cap_quote']:.0f} USDT "
+                f"(오늘 {g['period_spent_quote']:.2f} 사용) · 임팩트 상한 {g['max_price_impact_bps']}bp · "
+                f"깊이 하한 ${g['min_quote_depth_usd']:,} · 견적 신선도 {g['max_quote_age_s']}s"
             )
         if any(k in q for k in ("리스크", "risk", "한도", "정책", "policy")):
             p = self.policy

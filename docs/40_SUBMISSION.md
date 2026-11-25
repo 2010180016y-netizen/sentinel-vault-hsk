@@ -1,16 +1,17 @@
 # 제출 준비 · 회기님 조치 목록
 
-## 0. 현재 상태 (2026-11-24)
+## 0. 현재 상태 (2026-11-25)
 
 | 항목 | 상태 |
 |---|---|
 | 트랙 | **Track 1 — AI Agent Trading** 확정 |
-| 컨트랙트 | `SentinelVault` 완성, **47/47** 테스트 통과(포크 실거래 5건 포함) |
-| 에이전트 | Python 코어 + 대화형 대시보드(조정 포함), **48/48** 테스트 통과 |
+| 컨트랙트 | `SentinelVault` + `SwapGuardLib` + ERC-8004 레지스트리·어댑터, **69/69** 테스트 통과(포크 실거래 5건 포함) |
+| 에이전트 | Python 코어 + elizaOS형 런타임 + x402 결제 + 가드, **125/125** 테스트 통과 |
+| 오픈소스 통합 | elizaOS·uniswap-ai·x402·ERC-8004 4건 코드 반영 (`docs/12_OSS_INTEGRATION.md`) |
 | 감사 | Slither **13건**(High 1 / Medium 1 / Low 9 / Info 2), 항목별 트리아지 `docs/15_SLITHER_TRIAGE.md` |
 | 메인넷 배포 | **미완** (지갑·HSK 불필요 → 회기님 결정 대기) |
 | DoraHacks 등록 | **미완** (회기님 계정 필요) |
-| GitHub 공개 저장소 | **미완** (로컬 커밋만 존재) |
+| GitHub 공개 저장소 | 공개 repo `2010180016y-netizen/sentinel-vault-hsk` (2026-11-25 push) |
 | 데모 영상 | 미제작 (90초 스크립트 확정, 아래) |
 
 ---
@@ -81,7 +82,7 @@
 | 심사 관점(공개 문구) | 우리 대응 | 증거 위치 |
 |---|---|---|
 | 완성도 | 컨트랙트·에이전트·대시보드·배포 스크립트·문서 일체 | 저장소 전체 |
-| 기술 성숙도 | EIP-712 이중서명, TWAP 자기검증, 사후 잔고 검증, fuzz+불변식+포크 테스트, Slither | `test/`, `evidence/` |
+| 기술 성숙도 | EIP-712 이중서명, TWAP 자기검증, 사후 잔고 검증, fuzz+불변식+포크 테스트, Slither, **4개 표준 통합(런타임·가드·x402·ERC-8004)** | `test/`, `evidence/`, `docs/12_OSS_INTEGRATION.md` |
 | 혁신성 | 전략 사전등록 + 선언/실현 엣지 대조 + 노-트레이드 기록 | `SentinelVault.sol` 상단 주석, `stats()`, `edgeCredibilityBps()` |
 | HSK 생태계 사용 | HSKSwap 라우터·쿼터·팩토리·풀 오라클, 체인 177 | `docs/10_OSS_RESEARCH.md` §5 |
 | 현장 발표 | 12/5 서울 참석 시 우선 고려 | 회기님 결정 |
@@ -93,8 +94,8 @@
 ```bash
 cd competitions/hsk-chain-seoul-2026
 export PATH="$HOME/.foundry/bin:$PATH"
-forge test                                   # 47 tests (포크 포함, 네트워크 필요)
-python3 -m pytest tests/ -q                  # 48 tests (anvil 패리티 포함)
+forge test                                   # 69 tests (포크 포함, 네트워크 필요)
+python3 -m pytest tests/ -q                  # 125 tests (anvil 패리티 포함)
 python3 scripts/backtest.py                  # 실측 0건 / 합성 2건 / 하락추세 0건
 python3 scripts/run_paper.py --cycles 3      # 라이브 루프 (페이퍼)
 python3 -m agent.server --port 8765          # 대시보드

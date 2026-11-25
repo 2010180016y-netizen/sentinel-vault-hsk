@@ -10,6 +10,10 @@ import {MockV3Pool} from "../src/mocks/MockV3Pool.sol";
 import {MockSwapRouter02} from "../src/mocks/MockSwapRouter02.sol";
 import {MockFactory} from "../src/mocks/MockFactory.sol";
 import {TwapLib} from "../src/libraries/TwapLib.sol";
+import {IdentityRegistry} from "../src/registries/IdentityRegistry.sol";
+import {ReputationRegistry} from "../src/registries/ReputationRegistry.sol";
+import {ValidationRegistry} from "../src/registries/ValidationRegistry.sol";
+import {Sentinel8004Adapter} from "../src/Sentinel8004Adapter.sol";
 
 /// @notice Unit / fuzz / invariant tests for the policy kernel, against controllable mocks.
 ///         Real HSKSwap behaviour is covered by SentinelVault.fork.t.sol.
@@ -813,5 +817,48 @@ contract SentinelVaultTest is Test {
         router.setIgnoreMinOut(true); // simulate a malicious/broken router
         SentinelVault.Intent memory it = _intent(50e6, fair, 100, 1);
         _expectRevert(SentinelVault.InsufficientOutput.selector, it);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // ERC-8004: the same immutable record the agent cannot edit is what gets attested
+    // ---------------------------------------------------------------------------------------------
+
+    function test_ERC8004AttestationUsesTheRealVaultRecord() public {
+        uint256 fairBuy = _fairOut(50e6, true);
+        router.setNextAmountOut(fairBuy);
+        _exec(_intent(50e6, fairBuy, 100, 1));
+
+        uint256 fairSell = _fairOut(fairBuy, false);
+        router.setNextAmountOut(fairSell + (fairSell * 5) / 100);
+        vm.warp(block.timestamp + 120);
+        _exec(_sellIntent(uint128(fairBuy), (fairSell * 99) / 100, 0, 2));
+
+        IdentityRegistry identity = new IdentityRegistry();
+        ReputationRegistry reputation = new ReputationRegistry();
+        reputation.initialize(address(identity));
+        ValidationRegistry validation = new ValidationRegistry();
+        validation.initialize(address(identity));
+
+        vm.prank(owner);
+        uint256 agentId = identity.register("ipfs://sentinel-registration.json");
+
+        Sentinel8004Adapter adapter = new Sentinel8004Adapter(address(reputation), address(validation), owner);
+        vm.prank(owner);
+        adapter.setAgent(agentId);
+
+        int128 credibility = adapter.attest(address(vault));
+        assertEq(int256(credibility), vault.edgeCredibilityBps(), "attested number is the vault's own");
+        assertGt(credibility, 0, "a profitable exit against a declared edge is measurable credibility");
+
+        address[] memory clients = new address[](1);
+        clients[0] = address(adapter);
+        (uint64 count,,) = reputation.getSummary(agentId, clients, "edgeCredibility", "");
+        assertEq(count, 1, "feedback landed on the identity registry's agent id");
+
+        bytes32 requestHash = keccak256("sentinel/validation/1");
+        vm.prank(owner);
+        validation.validationRequest(address(adapter), agentId, "ipfs://validation-1.json", requestHash);
+        vm.prank(owner);
+        assertEq(adapter.validate(requestHash, address(vault), 0, 2), 100, "two real trades clear the bar");
     }
 }

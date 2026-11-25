@@ -1,0 +1,4 @@
+'forge config --json' running
+'/workspace/.solc-select/artifacts/solc-0.8.24/solc-0.8.24 --version' running
+'/workspace/.solc-select/artifacts/solc-0.8.24/solc-0.8.24 @openzeppelin/=lib/openzeppelin-contracts/ forge-std/=lib/forge-std/src/ v3-core-08/=lib/v3-core-08/ openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/ src/libraries/SwapGuardLib.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --optimize --optimize-runs 200 --via-ir --evm-version shanghai --allow-paths .,/workspace/competitions/hsk-chain-seoul-2026/src/libraries' running
+INFO:Slither:src/libraries/SwapGuardLib.sol analyzed (2 contracts with 102 detectors), 0 result(s) found

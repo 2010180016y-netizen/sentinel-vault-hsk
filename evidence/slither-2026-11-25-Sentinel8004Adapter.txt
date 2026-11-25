@@ -1,0 +1,30 @@
+'forge config --json' running
+'/workspace/.solc-select/artifacts/solc-0.8.24/solc-0.8.24 --version' running
+'/workspace/.solc-select/artifacts/solc-0.8.24/solc-0.8.24 @openzeppelin/=lib/openzeppelin-contracts/ forge-std/=lib/forge-std/src/ v3-core-08/=lib/v3-core-08/ openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/ src/Sentinel8004Adapter.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --optimize --optimize-runs 200 --via-ir --evm-version shanghai --allow-paths .,/workspace/competitions/hsk-chain-seoul-2026/src' running
+INFO:Detectors:
+Detector: reentrancy-events
+Reentrancy in Sentinel8004Adapter.attest(address) (src/Sentinel8004Adapter.sol#73-93):
+	External calls:
+	- reputation.giveFeedback(agentId,credibilityBps,0,TAG_CREDIBILITY,bps,,,bytes32(0)) (src/Sentinel8004Adapter.sol#81-90)
+	- reputation.giveFeedback(agentId,executionBps,0,TAG_EXECUTION,bps,,,bytes32(0)) (src/Sentinel8004Adapter.sol#91)
+	Event emitted after the call(s):
+	- Attested(agentId,vault,credibilityBps,s.tradeCount) (src/Sentinel8004Adapter.sol#92)
+Reentrancy in Sentinel8004Adapter.validate(bytes32,address,uint16,uint256) (src/Sentinel8004Adapter.sol#97-107):
+	External calls:
+	- validation.validationResponse(requestHash,response,,bytes32(0),hard) (src/Sentinel8004Adapter.sol#105)
+	- validation.validationResponse(requestHash,response,,bytes32(0),soft) (src/Sentinel8004Adapter.sol#105)
+	Event emitted after the call(s):
+	- Validated(requestHash,vault,response,credibility) (src/Sentinel8004Adapter.sol#106)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-4
+INFO:Detectors:
+Detector: timestamp
+ValidationRegistry.validationRequest(address,uint256,string,bytes32) (src/registries/ValidationRegistry.sol#70-97) uses timestamp for comparisons
+	Dangerous comparisons:
+	- _validations[requestHash].validatorAddress != address(0) (src/registries/ValidationRegistry.sol#82)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Detectors:
+Detector: assembly
+ReputationRegistry.readAllFeedback(uint256,address[],string,string,bool) (src/registries/ReputationRegistry.sol#171-229) uses assembly
+	- INLINE ASM (src/registries/ReputationRegistry.sol#220-228)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
+INFO:Slither:src/Sentinel8004Adapter.sol analyzed (7 contracts with 102 detectors), 4 result(s) found
