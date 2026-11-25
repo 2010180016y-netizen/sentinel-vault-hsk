@@ -96,7 +96,7 @@ ERC-8004 평판→x402 실정산까지 통과하고, 에이전트 장부와 볼�
 
 ## 5. 남은 작업 (마감 2026-12-03 13:00)
 
-1. Owner 지갑에 HSK **1.89** 입금 (배포 실측 1.8885 + 여유)
+1. Owner 지갑에 HSK **2.0** 입금 (배포 실측 1.8885, 추정 1.9138 + 여유)
 2. `DEPLOYER_KEY=… python scripts/deploy.py --confirm` → Blockscout 소스 검증
    (배포 후 `setMarket(WHSK,3000,true)`, `registerStrategy(두 해시)`, `unpause()`, `deposit`)
 3. 데모 영상 90초 촬영 — `docs/50_DEMO.md` 흐름, 숫자는 §3 기준

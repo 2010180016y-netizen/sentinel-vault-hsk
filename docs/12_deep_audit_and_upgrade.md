@@ -111,7 +111,7 @@ $ python3 scripts/backtest.py                                  → "not enough r
 |---|---|---|
 | **E1** | “왕복 126bp” — 수수료 이중계상(F3). “146bp = 126 + 20”이라는 설명도 성립하지 않는다 | 65.7bp로 정정하고, 정책 하한 146bp는 **비용 + 80bp 마진**으로 정직하게 표기 |
 | **E2** | “69/69, 125/125” 등 테스트 수치가 이후 추가분과 불일치 | 74/173으로 전면 갱신 |
-| **E3** | 배포 가스 3,802,309 / 1.90 HSK — 코드 변경 후 재측정 필요 | 3,777,090 / **1.8885 HSK**(500.001 gwei) / bytecode 16,666B |
+| **E3** | 배포 가스 3,802,309 / 1.90 HSK — 코드 변경 후 재측정 필요 | 포크 실측 3,777,090 / **1.8885 HSK**(500.001 gwei), `deploy.py` 추정 3,827,004 → 1.9138 HSK / 배포 16,666B(init 18,785B) |
 | **E4** | Slither 13건이 마지막 코드 변경을 반영하지 않음 | 2026-11-25 재실행, 13건 유지(High 1/Medium 1/Low 9/Info 2) + 목 토큰 3건 테스트 전용 명시 |
 | **E5** | 제출 문서가 “공개 저장소 push 완료”인데 CI·데모·실측 문서가 없다 | 본 문서 + `docs/50_DEMO.md` + CI + 재현 명령 |
 
@@ -236,6 +236,11 @@ Ran 1 test suite: 5 tests passed, 0 failed, 0 skipped (5 total)
 
 신규 5: `test_Revert_WhenSellExceedsTheBook`, `test_SellEqualToTheBookIsAllowed`,
 `test_ConfigViewsAndGuards`, `test_Revert_WhenSignerRotationCollapsesDualControl`, `test_Revert_WhenDepositIsZero`.
+
+**기존 테스트 중 3개의 기대값을 고쳤다(동작이 아니라 가짜 거래소의 단위가 틀렸던 것)**:
+`test_round_trip_cost_counts_both_legs`(이중계상 126bp를 기대), `test_live_buy_books_the_amount...`(가짜 체결가가
+가짜 풀 스케일과 불일치), `test_live_exit_settles_the_round_trip`(포지션 스케일 불일치). 세 테스트가 지키던
+동작(체결량은 영수증에서, 청산은 라운드트립을 정산)은 그대로이며 포크 end-to-end가 더 강하게 검증한다.
 
 ### 7.2 Python
 

@@ -29,8 +29,8 @@
 - 선택지: ①이 지갑 사용 ②회기님이 쓰시는 지갑으로 교체(`gen_keys.py` 재실행 또는 `setSigners`).
 
 ### (2) HSK 가스 — 소액
-- 실측: 3,777,090 gas × 500.001 gwei = **1.8885 HSK** (L1 데이터 수수료 ~0.0003 포함), HSK $0.0808 → **≈ $0.15**.
-- Owner 지갑에 **2.0 HSK**면 배포 + `setMarket/registerStrategy/unpause/deposit`까지 충분하다.
+- 실측(포크): 3,777,090 gas × 500.001 gwei = **1.8885 HSK** (L1 데이터 수수료 ~0.00028 포함). `deploy.py` 추정은 3,827,004 gas → **1.9138 HSK**. HSK $0.0808 → **≈ $0.15**.
+- Owner 지갑에 **2.0 HSK**면 배포(1.89~1.91) + `setMarket/registerStrategy/unpause/deposit`까지 충분하다.
 - 대안: 대회 측 가스 지원 문의(Q&A에 질문만 있고 답변 0건).
 
 ### (3) DoraHacks 등록

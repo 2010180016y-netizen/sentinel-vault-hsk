@@ -100,7 +100,7 @@ no-trade is written down like any other decision.
 | Fork run: dislocation created / entry / claim / exit | **381bp / 50.91 USDT / 166bp / 601.0bp** | `scripts/fork_demo.py` |
 | Vault record after that run | 2 trades, `declaredEdgeSumBps` 166, `realizedEdgeSumBps` 600, `edgeCredibilityBps` 36,144, `avgExecutionEdgeBps` +297 | `vault.stats()` |
 | x402 settlement on the fork | real `transferWithAuthorization`, gas **65,840**, nonce consumed | `evidence/e2e_fork.json` |
-| Deployment cost | 3,777,090 gas → **1.8885 HSK** (500 gwei, ≈ $0.15), bytecode 16,666B | `forge` receipt / `scripts/deploy.py` |
+| Deployment cost | 3,777,090 gas measured on the fork → **1.8885 HSK** (500 gwei, ≈ $0.15); `deploy.py` estimate 3,827,004 → 1.9138. Deployed bytecode 16,666B (init 18,785B with args) | `forge` receipt / `scripts/deploy.py` |
 
 The honest headline: **on this venue today, a taker strategy does not clear its own costs.** The
 repository proves that with the pool's numbers, and proves the machinery that would trade the moment
