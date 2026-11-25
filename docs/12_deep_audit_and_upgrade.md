@@ -124,8 +124,10 @@ $ python3 scripts/backtest.py                                  → "not enough r
 
 ### 2.5 감사 중 “아차” 한 건 (정직하게)
 
-포크 데모를 처음 돌렸을 때 에이전트가 `HSK_RPC`를 읽어 **메인넷**을 보고 있었다. 서명 계정이 메인넷에
-잔고가 없어 노드가 `insufficient funds`로 거부했기 때문에 트랜잭션은 나가지 않았다. 조치:
+포크 데모를 처음 돌렸을 때 에이전트가 `HSK_RPC`를 읽어 **메인넷**을 보고 있었다. 서명 계정은 anvil 공개
+계정 #1로, 메인넷에 **다른 사용자가 남긴 이력(nonce 126)과 먼지 잔고(≈4×10⁻⁷ HSK)** 가 있었다. 900k gas ×
+438 gwei(≈3.9×10¹⁴ wei)에 훨씬 못 미쳐 노드가 `insufficient funds`로 거부했고, **nonce는 126 그대로**다
+(트랜잭션 미발생). 공개 테스트 키를 쓰는 데모는 이 인터록이 없으면 언제든 실수로 메인넷에 닿을 수 있다. 조치:
 ①데모가 `HSK_RPC`를 자기 포크로 고정하고 loopback을 assert, ②`ChainExecutor`에 **비-loopback RPC는
 `SENTINEL_CONFIRM_MAINNET_TX=1` 없이는 브로드캐스트 거부** 인터록 추가. 이 인터록이 다음 실행에서
 조용한 메인넷 전송을 코드 레벨에서 막는다.
