@@ -17,7 +17,7 @@ ERC-8004 평판→x402 실정산까지 통과하고, 에이전트 장부와 볼�
 |---|---|
 | Foundry | **74/74** (단위·정책·fuzz 46 + 불변식 5 + 스왑 가드 4 + ERC-8004 17 + 메인넷 포크 5) |
 | Python | **173/173** |
-| 포크 end-to-end | **49 tx · 33 checks** — `evidence/e2e_fork.md` |
+| 포크 end-to-end | **49 tx · 26 checks** — `evidence/e2e_fork.md` |
 | Slither | **13** (High 1 / Medium 1 / Low 9 / Info 2) + 테스트 전용 목 토큰 3 |
 | 왕복 비용 | **65.7bp** (33.0 + 32.7, 수수료 포함) · 정책 하한 146bp |
 | 배포 | 3,777,090 gas / **1.8885 HSK** / 16,666B |

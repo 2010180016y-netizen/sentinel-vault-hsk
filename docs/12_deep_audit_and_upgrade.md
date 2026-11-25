@@ -21,7 +21,7 @@
 |---|---|---|---|
 | Foundry | 69/69 | **74/74** | §7.1 |
 | Python | 125/125 | **173/173** | §7.2 |
-| 체인 end-to-end | 없음(유닛 목만) | **포크 49 tx, 33개 체크 통과** | `evidence/e2e_fork.json` |
+| 체인 end-to-end | 없음(유닛 목만) | **포크 49 tx, 26개 체크 통과** | `evidence/e2e_fork.json` |
 | x402 정산 | paper만 | **실제 `transferWithAuthorization` tx** | `evidence/e2e_fork.json` → `x402` |
 | 왕복 비용(120 USDT) | 126bp로 표기(이중계상) | **65.7bp 실측**(수수료는 견적에 포함) | `evidence/backtest.json` |
 | 인터랙티브 데모 | 정적 카드 6개 | **게이트 추적·시나리오 랩·x402 결제·온체인 대조** | `web/index.html`, `tests/test_api.py` |
@@ -101,7 +101,7 @@ $ python3 scripts/backtest.py                                  → "not enough r
 | **D3** | LLM이 어디에도 없다 — Track 1이 “AI Agent”인데 키워드 라우터뿐 | “AI가 어디 있나” 질문에 답이 없다 | 서술 계층 + **숫자 검증**(사실에 없는 수는 폐기) + **제안 심사**(LLM 제안을 정책·가드로 판정) | `tests/test_narrator.py` 15개 |
 | **D4** | x402 정산이 paper 고정, `ChainFacilitator`는 한 번도 실행되지 않음 | “결제 통합”이 형식적 | 로컬 체인에서 실제 `transferWithAuthorization` 정산 + nonce 온체인 확인 | 포크 x402, gas 65,840 |
 | **D5** | ERC-8004는 격리 테스트만, **살아있는 볼트·에이전트 조합**에서 검증된 적 없음 | 평판·검증이 “볼트 기록에서 온다”는 주장 미검증 | 포크에서 신원 등록→검증 요청→어댑터 응답 100→평판 36144를 볼트 값과 대조 | `evidence/e2e_fork.md` |
-| **D6** | 에이전트가 체인에 대해 끝까지 도는 경로가 없다(모든 라이브 테스트가 fake) | F1·F5를 못 잡은 근본 원인 | `scripts/fork_demo.py` — 실제 에이전트·실제 라우터·실제 오라클 | 49 tx / 33 checks |
+| **D6** | 에이전트가 체인에 대해 끝까지 도는 경로가 없다(모든 라이브 테스트가 fake) | F1·F5를 못 잡은 근본 원인 | `scripts/fork_demo.py` — 실제 에이전트·실제 라우터·실제 오라클 | 49 tx / 26 checks |
 | **D7** | 전략이 **cap 크기로만** 견적해, 실제로 낼 크기(conviction 축소)의 비용을 모른다 | 얇은 풀에서 통과/거부가 모두 틀린다 | depth-aware sizing: 실제 크기로 재견적, 비용이 안 맞으면 크기를 줄이고, 그래도 안 되면 HOLD | 포크 50.91 USDT 진입 |
 | **D8** | CI 없음 — “테스트 통과”가 커밋마다 증명되지 않는다 | 성숙도 신호 | `ci/ci.yml` (contracts / agent / fork) — 연결된 GitHub App에 `workflows` 권한이 없어 `.github/workflows/`에 올릴 수 없다. 저장소에서 Actions를 켠 뒤 복사하면 된다 | 워크플로 파일 |
 
@@ -176,7 +176,7 @@ $ python3 scripts/backtest.py                                  → "not enough r
 | `agent/lab.py` | 시나리오 1개를 전략→정책→가드로 판정, 게이트·한도·실제값 반환 | 계약과 같은 게이트 순서, 첫 실패에서 멈춤, 결정론 |
 | `agent/narrator.py` | LLM 서술·제안 계층 | 사실에 없는 숫자는 폐기, 제안은 정책·가드가 거부, 결정 불변 |
 | `src/mocks/MockEIP3009.sol` | EIP-3009 목 토큰(6dp, `transferWithAuthorization`, `authorizationState`) | Python 서명과 온체인 ECDSA 검증 일치 |
-| `scripts/fork_demo.py` | 포크 end-to-end 오케스트레이터(배포·이탈·거부·진입·청산·8004·x402) | 33개 체크, 49 tx, loopback assert |
+| `scripts/fork_demo.py` | 포크 end-to-end 오케스트레이터(배포·이탈·거부·진입·청산·8004·x402) | 26개 체크, 49 tx, loopback assert |
 | `tests/test_lab.py` | 랩 경계 11개 | 오버사이즈·낙폭·킬스위치·청산 예외 |
 | `tests/test_narrator.py` | LLM 경계 15개 | 999bp 폐기, 500 USDT 거부, flat SELL 거부 |
 | `tests/test_api.py` | 대시보드 API 10개 | 실제 HTTP, 실제 에이전트 |
@@ -259,7 +259,7 @@ agent             → SELL, realised 601.0bp → executeIntent tx
 ERC-8004          → validation response 100, reputation 36144 (= vault.edgeCredibilityBps())
 reconcile         → ledger vs vault: 4/4 rows match
 x402              → 0.001 USDT transferWithAuthorization, gas 65,840, nonce consumed on-chain
-33 checks passed · 49 transactions · evidence/e2e_fork.json, .md
+26 checks passed · 49 transactions · evidence/e2e_fork.json, .md
 ```
 
 **정직한 해석**: +601bp는 알파가 아니다. 우리가 고래 매수로 풀을 +275bp까지 되돌린 **시나리오**다.

@@ -7,7 +7,7 @@
 | 트랙 | **Track 1 — AI Agent Trading** 확정 |
 | 컨트랙트 | `SentinelVault` + `SwapGuardLib` + ERC-8004 레지스트리·어댑터 + EIP-3009 목 토큰, **74/74** 테스트(포크 실거래 5건 포함) |
 | 에이전트 | Python 코어 + elizaOS형 런타임 + x402(paper/chain) + 가드 + 시나리오 랩 + LLM 계층, **173/173** |
-| 포크 end-to-end | **49 tx · 33 checks** (`evidence/e2e_fork.md`) — 배포→거래→청산→평판→x402 실정산→장부 대조 |
+| 포크 end-to-end | **49 tx · 26 checks** (`evidence/e2e_fork.md`) — 배포→거래→청산→평판→x402 실정산→장부 대조 |
 | 오픈소스 통합 | elizaOS·uniswap-ai·x402·ERC-8004 코드 반영 (`docs/12_OSS_INTEGRATION.md`) |
 | 감사 | Slither **13건**(High 1 / Medium 1 / Low 9 / Info 2) + 목 토큰 3(테스트 전용), `docs/15_SLITHER_TRIAGE.md` |
 | CI | `ci/ci.yml` (contracts / agent / fork) |
