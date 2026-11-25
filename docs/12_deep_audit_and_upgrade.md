@@ -309,7 +309,7 @@ GET /api/x402/info        payee/가격/정산 모드
 $ git ls-files | grep -iE 'env|wallet|key|pem'   → .env.example, gen_keys.py, (lib의 벤더 파일)만
 $ git grep -nE 'private[_-]?key\s*=\s*0x[0-9a-f]{64}'  → 0건
 $ git status --short                              → 커밋 대상만
-→ 공개 저장소 2010180016y-netizen/sentinel-vault-hsk master push
+→ 공개 저장소 2010180016y-netizen/sentinel-vault-hsk master push (9e52b39, 462 files)
 ```
 
 `.env.wallets.local`(600)은 `.gitignore`(`.env*`, `*.local`, `*wallet*`, `*.key`)로 제외, 스크립트는 키를
