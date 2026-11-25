@@ -23,7 +23,8 @@ from .executor import ChainExecutor, PaperExecutor
 from .guards import GuardRequest, GuardState, period_key, preflight
 from .intent import Intent, strategy_id
 from .ledger import Ledger
-from .market import Bar, DexClient, PoolState
+from .market import Bar, DexClient, PoolState, spot_impact_bps
+from .narrator import GuardedNarrator, build_narrator, facts_from_record
 from .onchain import VaultView
 from .policy import AccountState, MarketState, build_min_out, check
 from .plugins import build_plugin
@@ -58,7 +59,8 @@ class Observation:
             "bars": len(self.bars),
             "impact_bps_buy": round(self.impact_bps_buy, 1),
             "impact_bps_sell": round(self.impact_bps_sell, 1),
-            "round_trip_cost_bps": round(2 * (self.market.fee / 100.0) + self.impact_bps_buy + self.impact_bps_sell, 1),
+            # each impact already contains the pool fee (the quote is the real output)
+            "round_trip_cost_bps": round(self.impact_bps_buy + self.impact_bps_sell, 1),
         }
 
 
@@ -73,6 +75,7 @@ class SentinelAgent:
         executor=None,
         vault_view: VaultView | None = None,
         guards: GuardState | None = None,
+        narrator=None,
     ) -> None:
         self.settings = settings or Settings.from_env()
         self.rpc = rpc or Rpc(self.settings.chain.rpc_url, self.settings.chain.chain_id)
@@ -82,7 +85,15 @@ class SentinelAgent:
         self.controls: Controls = Controls.from_settings(self.settings)
         self.strategy: Strategy = self.controls.strategy(self.settings.strategy)
         self.strategy_hash = strategy_id(self.strategy.spec())
-        self.executor = executor or PaperExecutor(self.dex, self.ledger, self.settings.addresses)
+        if executor is not None:
+            self.executor = executor
+        elif self.settings.live:
+            # SENTINEL_LIVE=1 must actually mean live: building a paper executor while the operator
+            # believes they are live would be the worst possible default. ChainExecutor fails closed
+            # when the vault address or either signing key is missing.
+            self.executor = ChainExecutor(self.settings, self.rpc, self.ledger)
+        else:
+            self.executor = PaperExecutor(self.dex, self.ledger, self.settings.addresses)
         self.market: Market = MARKETS[self.controls.asset]
         self.last_observation: Observation | None = None
         self.last_observed_at: int = 0
@@ -91,6 +102,10 @@ class SentinelAgent:
         # vault decides whether a *signed* intent may execute, these decide whether the agent should
         # even build one, and their refusals are recorded like any other no-trade decision.
         self.guard_state: GuardState = guards or self._default_guards()
+        # The language model sits at the edge of the system on purpose: it narrates decisions it did not
+        # make, and its reply is discarded if it invents a number (agent/narrator.py).
+        self.narrator = narrator if narrator is not None else GuardedNarrator(build_narrator())
+        self.last_narration: dict | None = None
         # elizaOS-style runtime: providers compose state, actions do the work, evaluators record it.
         self._runtime: AgentRuntime | None = None
         self.vault_view = vault_view
@@ -121,7 +136,11 @@ class SentinelAgent:
 
         pos_qty = self.ledger.positions.get(m.asset)
         if pos_qty and pos_qty.qty > 0:
-            sell_size = min(pos_qty.qty, int(self.policy.max_trade_notional))
+            # `max_trade_notional` is raw *quote* units; the position is raw *base* units. Comparing them
+            # directly quoted a 200,000,000-raw-unit exit (≈2e-10 WHSK) and reported a ~0bp exit impact
+            # for any real position — the hurdle was understated exactly when a position was open.
+            cap_base = self.dex.fair_out(m, int(self.policy.max_trade_notional), True, state.twap_quote_per_base)
+            sell_size = min(pos_qty.qty, cap_base) if cap_base > 0 else pos_qty.qty
         else:
             # Flat book: estimate the *exit* we would have to make at the same size, so the round-trip cost
             # in the decision is the real one. Quoting only the entry leg understates the hurdle by a whole
@@ -130,18 +149,16 @@ class SentinelAgent:
         qs = self.dex.quote_sell(m, sell_size) if sell_size > 0 else None
         fair_sell = self.dex.fair_out(m, sell_size, False, state.twap_quote_per_base) if sell_size > 0 else 0
 
-        def _impact(quoted: int, fair: int) -> float:
-            if fair <= 0 or quoted <= 0:
-                return 0.0
-            return max(0.0, (fair - quoted) / fair * BPS)
-
+        spot = state.spot_quote_per_base
         self.last_observed_at = int(time.time())
         obs = Observation(
             market=m,
             state=state,
             bars=bars,
-            impact_bps_buy=_impact(qb.amount_out, fair_buy),
-            impact_bps_sell=_impact(qs.amount_out if qs else 0, fair_sell),
+            impact_bps_buy=spot_impact_bps(spot, size_quote, qb.amount_out, m.decimals, is_buy=True),
+            impact_bps_sell=(
+                spot_impact_bps(spot, sell_size, qs.amount_out, m.decimals, is_buy=False) if qs else 0.0
+            ),
             quote_buy=qb.amount_out,
             quote_sell=qs.amount_out if qs else 0,
             fair_buy=fair_buy,
@@ -176,8 +193,121 @@ class SentinelAgent:
             position_quote=pos_value,
             size_cap_quote=self.controls.size_quote,
         )
+        # The cost hurdle was measured at the size cap; the order may be smaller than the cap. On a thin
+        # or freshly dislocated pool that difference *is* the decision: a dump can leave the price 400bp
+        # away while the in-range liquidity is exhausted, so a 120 USDT order pays 460bp in impact and a
+        # 20 USDT order pays 80bp. Price the round trip at the size the strategy would actually take, and
+        # if the cap size does not pay, size down to the depth instead of refusing a dislocation the venue
+        # is genuinely showing.
+        if (
+            d.action != "SELL"
+            and d.edge_bps >= self.policy.min_edge_bps
+            and d.dislocation_bps >= self.policy.min_edge_bps
+        ):
+            d = self._fit_to_depth(obs, d, pos_value, has_position=bool(pos and pos.qty > 0))
         self.last_decision = d
         return d
+
+    def _measure_round_trip(self, obs: Observation, size_quote: float) -> tuple[float, float, float]:
+        """Quote the entry *and* the exit at `size_quote`; return (cost_bps, impact_in, impact_out).
+
+        Both impacts are measured against the current spot, so the number is the cost of taking
+        liquidity — not the size of the dislocation the strategy is trying to capture.
+        """
+        m = self.market
+        price = obs.state.twap_quote_per_base
+        spot = obs.state.spot_quote_per_base
+        amount_in = max(1, int(round(size_quote * 1e6)))
+        qb = self.dex.quote_buy(m, amount_in)
+        ib = spot_impact_bps(spot, amount_in, qb.amount_out, m.decimals, is_buy=True)
+        fair_buy = self.dex.fair_out(m, amount_in, True, price)
+        qs = self.dex.quote_sell(m, fair_buy) if fair_buy > 0 else None
+        io = spot_impact_bps(spot, fair_buy, qs.amount_out, m.decimals, is_buy=False) if qs else 0.0
+        return ib + io, ib, io
+
+    def _fit_to_depth(self, obs: Observation, d: Decision, pos_value: float, *, has_position: bool = False) -> Decision:
+        """Choose the largest entry, up to the strategy's size, whose measured round trip clears the edge."""
+        m = self.market
+        frac = max(1e-9, self.strategy.target_position_frac * d.conviction)
+        target = d.size_quote if d.action == "BUY" and d.size_quote > 0 else self.controls.size_quote * frac
+        target = max(target, 5.0)
+
+        cost, ib, io = self._measure_round_trip(obs, target)
+        if cost + 20.0 <= d.edge_bps:
+            if d.action == "BUY":
+                return d
+            fitted = self._redecide(obs, d, pos_value, target, ib, io, has_position=has_position)
+            if fitted.action == "BUY":
+                fitted.reasons.insert(
+                    0,
+                    f"cost re-measured at the strategy's {target:.1f} USDT: {cost:.0f}bp, not the "
+                    f"{d.hurdle_bps - 20:.0f}bp the cap-size quote implied → the entry is viable",
+                )
+            return fitted
+
+        floor_size = 5.0
+        cost_lo, _, _ = self._measure_round_trip(obs, floor_size)
+        if cost_lo + 20.0 > d.edge_bps:
+            return self._hold_for_cost(d, cost, target, floor_size, cost_lo)
+
+        lo, hi = floor_size, target
+        for _ in range(5):
+            mid = (lo + hi) / 2
+            c, *_ = self._measure_round_trip(obs, mid)
+            if c + 20.0 <= d.edge_bps:
+                lo = mid
+            else:
+                hi = mid
+        _, ib, io = self._measure_round_trip(obs, lo)
+        fitted = self._redecide(obs, d, pos_value, lo, ib, io, has_position=has_position)
+        if fitted.action == "BUY":
+            fitted.reasons.insert(
+                0,
+                f"cost re-measured at {fitted.size_quote:.1f} USDT: {ib + io:.0f}bp, not the "
+                f"{cost:.0f}bp the {target:.1f} USDT quote implied → order fitted to the pool",
+            )
+        return fitted
+
+    def _redecide(self, obs: Observation, d: Decision, pos_value: float, size: float,
+                  impact_in: float, impact_out: float, *, has_position: bool = False) -> Decision:
+        """Run the same decision function with the cost measured at `size` (the only thing that changed)."""
+        m = self.market
+        frac = max(1e-9, self.strategy.target_position_frac * d.conviction)
+        f2 = build_features(
+            obs.bars,
+            twap_dev_bps=obs.state.twap_deviation_bps,
+            fee_bps=m.fee / 100.0,
+            impact_bps_buy=impact_in,
+            impact_bps_sell=impact_out,
+            liquidity_quote=obs.state.depth_quote(),
+            strategy=self.strategy,
+        )
+        return decide(
+            f2,
+            self.policy,
+            self.strategy,
+            has_position=has_position,
+            position_quote=pos_value,
+            size_cap_quote=size / frac,
+        )
+
+    @staticmethod
+    def _hold_for_cost(d: Decision, cost: float, size: float, floor_size: float, cost_lo: float) -> Decision:
+        reasons = [
+            f"measured round trip at {size:.1f} USDT is {cost:.0f}bp; not even {floor_size:.0f} USDT clears the "
+            f"{d.edge_bps:.0f}bp edge (cost {cost_lo:.0f}bp there)",
+            *d.reasons,
+        ]
+        return Decision(
+            action="HOLD",
+            conviction=d.conviction,
+            edge_bps=d.edge_bps,
+            size_quote=0.0,
+            reasons=reasons,
+            features=d.features,
+            hurdle_bps=d.hurdle_bps,
+            dislocation_bps=d.dislocation_bps,
+        )
 
     # ------------------------------------------------------------------ conversational surface (runtime)
 
@@ -217,13 +347,24 @@ class SentinelAgent:
         a = self.settings.addresses
         pos = self.ledger.positions.get(m.asset)
         amount_in = int(round(notional_quote * 1e6)) if is_buy else (pos.qty if pos else 0)
+        # The guard's "price impact" must be the cost of taking liquidity, benchmarked against the
+        # current spot; benchmarking against TWAP would read a dislocation as an impact and refuse the
+        # very exit that a dump makes necessary.
+        spot = obs.state.spot_quote_per_base or 0.0
+        if spot > 0:
+            if is_buy:
+                benchmark_out = int(notional_quote / spot * (10**m.decimals))
+            else:
+                benchmark_out = int(amount_in / 10**m.decimals * spot * 1e6)
+        else:
+            benchmark_out = fair_out
         return GuardRequest(
             token_in=a.quote if is_buy else m.asset,
             token_out=m.asset if is_buy else a.quote,
             amount_in=amount_in,
             notional_quote=notional_quote,
             quoted_out=int(quoted_out or 0),
-            fair_out=int(fair_out or 0),
+            fair_out=int(benchmark_out or 0),
             quote_depth_quote=obs.state.depth_quote(),
             sell_quote=int(obs.quote_sell) if is_buy else int(quoted_out or 0),
             quote_age_s=max(0, ts - self.last_observed_at),
@@ -307,16 +448,37 @@ class SentinelAgent:
 
         is_buy = d.action == "BUY"
         declared_edge = int(round(d.edge_bps)) if is_buy else 0  # an exit claims nothing
+        # Quote at the size this intent will actually carry. Using the observation's cap-size quote for
+        # a smaller order would set a floor far below the real fill (and, for a sell larger than the
+        # per-trade cap, quote a size that is not the size being sold).
         if is_buy:
             amount_in = int(round(d.size_quote * 1e6))
-            min_out = build_min_out(obs.quote_buy, obs.fair_buy, self.policy.max_slippage_bps)
+            quote = self.dex.quote_buy(m, amount_in)
+            fair_out = self.dex.fair_out(m, amount_in, True, obs.state.twap_quote_per_base)
             notional_quote = d.size_quote
-            fair_out = obs.fair_buy
         else:
-            amount_in = acct.position_qty
-            min_out = build_min_out(obs.quote_sell, obs.fair_sell, self.policy.max_slippage_bps) if obs.quote_sell else 0
-            notional_quote = obs.fair_sell / 1e6
-            fair_out = obs.fair_sell
+            price = obs.state.twap_quote_per_base or 0.0
+            pos_value = acct.position_qty / 10**m.decimals * price
+            # The vault lets an exit exceed the per-trade cap by `maxSlices`, but not more. An exit larger
+            # than that has to leave in slices; capping here keeps the intent inside the on-chain ceiling
+            # instead of discovering it as a revert.
+            exit_cap_quote = self.policy.max_trade_notional / 1e6 * self.policy.max_slices
+            if price > 0 and pos_value > exit_cap_quote:
+                amount_in = int(exit_cap_quote / price * (10**m.decimals))
+            else:
+                amount_in = acct.position_qty
+            quote = self.dex.quote_sell(m, amount_in) if amount_in > 0 else None
+            fair_out = (
+                self.dex.fair_out(m, amount_in, False, price) if amount_in > 0 else 0
+            )
+            notional_quote = amount_in / 10**m.decimals * price
+        min_out = build_min_out(quote.amount_out if quote else 0, fair_out, self.policy.max_slippage_bps)
+        record["quoted_at_execution"] = {
+            "amount_in": amount_in,
+            "quoted_out": quote.amount_out if quote else 0,
+            "fair_out": fair_out,
+            "min_out": min_out,
+        }
 
         verdict = check(
             is_buy=is_buy,
@@ -327,10 +489,16 @@ class SentinelAgent:
             max_notional_quote=(self.policy.max_trade_notional / 1e6) if is_buy else 1e18,
             policy=self.policy,
             account=acct,
-            market=self._market_state(obs, fair_out, obs.quote_buy if is_buy else obs.quote_sell),
+            market=self._market_state(obs, fair_out, quote.amount_out if quote else 0),
             now_ts=ts,
         )
-        record["policy"] = {"ok": verdict.ok, "reason": verdict.reason, "detail": verdict.detail, "notes": verdict.notes}
+        record["policy"] = {
+            "ok": verdict.ok,
+            "reason": verdict.reason,
+            "detail": verdict.detail,
+            "notes": verdict.notes,
+            "gates": [g.as_dict() for g in verdict.gates],
+        }
 
         if not verdict.ok:
             record["executed"] = False
@@ -350,7 +518,7 @@ class SentinelAgent:
                 obs,
                 is_buy=is_buy,
                 notional_quote=notional_quote,
-                quoted_out=obs.quote_buy if is_buy else obs.quote_sell,
+                quoted_out=quote.amount_out if quote else 0,
                 fair_out=fair_out,
                 ts=ts,
             ),
@@ -462,6 +630,26 @@ class SentinelAgent:
         except Exception as exc:  # noqa: BLE001 - the refusal log must not break the loop
             return f"record_failed: {type(exc).__name__}: {exc}"
 
+    # ------------------------------------------------------------------ narrate
+
+    def narrate_last(self) -> dict:
+        """Narrate the last decision. The fallback is the deterministic sentence, so this always answers.
+
+        The LLM receives facts the agent already produced. If it writes a number that is not in those
+        facts, the reply is discarded (`rejected=True`) and the deterministic sentence is returned; the
+        decision itself is never revisited here.
+        """
+        record = self.ledger.decisions[-1] if self.ledger.decisions else {}
+        fallback = record.get("explain", "") or "아직 판단 기록이 없습니다."
+        if not record:
+            return {"text": fallback, "source": "deterministic", "rejected": False, "reason": "no decision yet"}
+        facts = facts_from_record(record)
+        facts["strategy_hash"] = self.strategy_hash
+        out = self.narrator.narrate(facts, fallback)
+        out["facts"] = facts
+        self.last_narration = out
+        return out
+
     # ------------------------------------------------------------------ explain
 
     def explain(self, d: Decision, obs: Observation, *, executed: bool = False, realised_edge: float = 0.0) -> str:
@@ -528,6 +716,11 @@ class SentinelAgent:
             "market_menu": {k: {"quote_depth_usd": v["quote_depth_usd"], "impact_bps_at_120": v["impact_bps_at_120"]} for k, v in MARKET_STATS.items()},
             "metrics": self.ledger.metrics(),
             "onchain": self.vault_view.summary() if self.vault_view else {"ok": False, "error": "SENTINEL_VAULT not set"},
+            "llm": {
+                "configured": bool(getattr(self.narrator, "configured", False)),
+                "narrator": getattr(getattr(self.narrator, "inner", self.narrator), "name", "null"),
+                "last": self.last_narration,
+            },
             "equity_curve": self.ledger.equity_curve[-240:],
             "trades": [t.as_dict() for t in self.ledger.trades[-20:]],
             "decisions": self.ledger.decisions[-20:],

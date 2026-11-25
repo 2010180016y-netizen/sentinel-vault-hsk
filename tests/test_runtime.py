@@ -22,6 +22,10 @@ from agent.market import Bar, PoolState  # noqa: E402
 from agent.runtime import AgentRuntime, Action, ActionResult, Evaluator, Plugin, ProviderSpec, State  # noqa: E402
 
 TICK = -301_487
+# 1 USDT buys ~12.38 WHSK at ~0.0808: the fake quotes in raw units, so the conversion is 12.38e12
+# (10**18 WHSK per whole token / 10**6 USDT per whole token). The previous factor of 12 ignored the
+# 18/6 decimal gap, which the spot-benchmarked impact check (correctly) refuses.
+WHSK_PER_USDT_SCALE = int(12.38e12)
 
 
 def _state(dev_ticks: int = -450) -> PoolState:
@@ -53,18 +57,18 @@ class FakeDex:
 
     def quote_buy(self, market, amount_quote: int):
         class Q:
-            amount_out = amount_quote * 12
+            amount_out = amount_quote * WHSK_PER_USDT_SCALE
 
         return Q()
 
     def quote_sell(self, market, amount_asset: int):
         class Q:
-            amount_out = amount_asset // 12
+            amount_out = amount_asset // WHSK_PER_USDT_SCALE
 
         return Q()
 
     def fair_out(self, market, amount_in: int, buy: bool, twap_quote_per_base: float) -> int:
-        return amount_in * 12 if buy else amount_in // 12
+        return amount_in * WHSK_PER_USDT_SCALE if buy else amount_in // WHSK_PER_USDT_SCALE
 
 
 class FakeRpc:

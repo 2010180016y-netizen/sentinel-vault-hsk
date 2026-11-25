@@ -16,37 +16,37 @@
  .warn{color:#ffc857} .ok{color:#38d39f} code{background:#151b22;padding:1px 5px;border-radius:4px}
 </style></head><body><div class="wrap">
 <h1>Sentinel HSK — 실측 증거</h1>
-<div class="sub">HSK Chain Horizon Hackathon · Seoul / Track 1 · 2026-11-25 12:35 KST · chain 177 · 전부 재생성 가능한 숫자</div>
+<div class="sub">HSK Chain Horizon Hackathon · Seoul / Track 1 · 2026-11-25 15:16 KST · chain 177 · 전부 재생성 가능한 숫자</div>
 
 <div class="grid">
   <div class="kpi"><div class="k">WHSK/USDT TWAP</div><div class="v">0.08079</div></div>
   <div class="kpi"><div class="k">spot vs TWAP</div><div class="v">+0 bp</div></div>
   <div class="kpi"><div class="k">pool depth (quote side)</div><div class="v">$419,486</div></div>
-  <div class="kpi"><div class="k">왕복 비용 (실측)</div><div class="v">126 bp</div></div>
+  <div class="kpi"><div class="k">왕복 비용 (실측)</div><div class="v">66 bp</div></div>
   <div class="kpi"><div class="k">엣지 허들</div><div class="v">146 bp</div></div>
   <div class="kpi"><div class="k">지금 판단</div><div class="v warn">HOLD</div></div>
 </div>
 
 <h2>0. 비용은 이렇게 나옵니다</h2>
 <div class="card"><div class="note">
-테이커는 수수료와 가격 임팩트를 <b>두 번</b> 낸다(들어올 때, 나갈 때). 이전 모델은 두 임팩트를 평균내
-(30×2 + 33 = 93bp) 왕복 비용을 실제보다 낮게 잡았고, 그래서 스스로를 속여 거래할 수 있었다.
-지금은 <code>2×30bp 수수료 + 33.0bp 진입 임팩트 + 32.7bp 청산 임팩트
-= 125.7bp</code>를 쓰고, 여기에 20bp 마진을 더해 허들 146bp가 된다.
-정책의 온체인 하한(<code>minEdgeBps = 146</code>)도 같은 값에서 나왔다 — 즉 "수수료보다 작은 엣지를 주장하면
-컨트랙트가 거부한다"가 말이 아니라 코드다.
+테이커는 들어올 때와 나갈 때 <b>두 번</b> 낸다. 견적에는 이미 0.3% 수수료가 포함되어 있으므로, 이 저장소는
+<code>33.0bp 진입 임팩트 + 32.7bp 청산 임팩트 = 65.7bp</code>를
+왕복 비용으로 쓴다. (이전 모델은 여기에 <code>2×30bp</code>를 더해 126bp로 이중계상했고, 임팩트를 TWAP 대비로 재서
+이탈 자체를 비용으로 만들었다. 정정 경위: <code>docs/12_deep_audit_and_upgrade.md</code> F3.)
+정책의 온체인 하한(<code>minEdgeBps = 146</code>)은 측정 비용에 약 80bp의 의도적 마진을 더한 값이다 —
+"수수료보다 작은 엣지를 주장하면 컨트랙트가 거부한다"가 말이 아니라 코드다.
 </div></div>
 
-<h2>1. 실측 시장에서의 판단 (실제 HSKSwap 기록 바 35개)</h2>
-<div class="card"><svg viewBox="0 0 640 160" width="100%" preserveAspectRatio="none"><path d="M8.0,80.0 L52.6,80.0 L97.1,80.0 L141.7,80.0 L186.3,80.0 L230.9,80.0 L275.4,80.0 L320.0,80.0 L364.6,80.0 L409.1,80.0 L453.7,80.0 L498.3,80.0 L542.9,80.0 L587.4,80.0 L632.0,80.0" fill="none" stroke="#8b98a5" stroke-width="1.8"/></svg><div class="note">거래 0건 (진입 0) · 승 0 · 실현손익 +0.0000 USDT · 수수료 0.0000 · 선언 엣지 0bp → 실현 0bp (신뢰도 0bp) · 다리당 실행 +0.0bp · 거부 기록 15건 · 최대낙폭 0bp</div></div>
-<table><thead><tr><th>bar</th><th>price</th><th>TWAP</th><th>dev bp</th><th>action</th><th>edge/hurdle</th><th>exec</th><th>거부 지점</th></tr></thead><tbody><tr><td>23</td><td>0.08053</td><td>0.08089</td><td>-44</td><td>HOLD</td><td>20/146</td><td>—</td><td></td></tr><tr><td>24</td><td>0.08052</td><td>0.08090</td><td>-47</td><td>HOLD</td><td>21/146</td><td>—</td><td></td></tr><tr><td>25</td><td>0.08051</td><td>0.08088</td><td>-46</td><td>HOLD</td><td>21/146</td><td>—</td><td></td></tr><tr><td>26</td><td>0.08098</td><td>0.08086</td><td>+15</td><td>HOLD</td><td>15/146</td><td>—</td><td></td></tr><tr><td>27</td><td>0.08099</td><td>0.08087</td><td>+16</td><td>HOLD</td><td>13/146</td><td>—</td><td></td></tr><tr><td>28</td><td>0.08100</td><td>0.08087</td><td>+16</td><td>HOLD</td><td>10/146</td><td>—</td><td></td></tr><tr><td>29</td><td>0.08052</td><td>0.08087</td><td>-43</td><td>HOLD</td><td>20/146</td><td>—</td><td></td></tr><tr><td>30</td><td>0.08052</td><td>0.08085</td><td>-41</td><td>HOLD</td><td>18/146</td><td>—</td><td></td></tr><tr><td>31</td><td>0.08052</td><td>0.08083</td><td>-38</td><td>HOLD</td><td>17/146</td><td>—</td><td></td></tr><tr><td>32</td><td>0.08101</td><td>0.08081</td><td>+25</td><td>HOLD</td><td>16/146</td><td>—</td><td></td></tr><tr><td>33</td><td>0.08101</td><td>0.08081</td><td>+25</td><td>HOLD</td><td>12/146</td><td>—</td><td></td></tr><tr><td>34</td><td>0.08053</td><td>0.08082</td><td>-36</td><td>HOLD</td><td>18/146</td><td>—</td><td></td></tr></tbody></table>
+<h2>1. 실측 시장에서의 판단 (실제 HSKSwap 기록 바 40개)</h2>
+<div class="card"><svg viewBox="0 0 640 160" width="100%" preserveAspectRatio="none"><path d="M8.0,80.0 L40.8,80.0 L73.7,80.0 L106.5,80.0 L139.4,80.0 L172.2,80.0 L205.1,80.0 L237.9,80.0 L270.7,80.0 L303.6,80.0 L336.4,80.0 L369.3,80.0 L402.1,80.0 L434.9,80.0 L467.8,80.0 L500.6,80.0 L533.5,80.0 L566.3,80.0 L599.2,80.0 L632.0,80.0" fill="none" stroke="#8b98a5" stroke-width="1.8"/></svg><div class="note">거래 0건 (진입 0) · 승 0 · 실현손익 +0.0000 USDT · 수수료 0.0000 · 선언 엣지 0bp → 실현 0bp (신뢰도 0bp) · 다리당 실행 +0.0bp · 거부 기록 20건 · 최대낙폭 0bp</div></div>
+<table><thead><tr><th>bar</th><th>price</th><th>TWAP</th><th>dev bp</th><th>action</th><th>edge/hurdle</th><th>exec</th><th>거부 지점</th></tr></thead><tbody><tr><td>28</td><td>0.08101</td><td>0.08082</td><td>+24</td><td>HOLD</td><td>11/146</td><td>—</td><td></td></tr><tr><td>29</td><td>0.08102</td><td>0.08082</td><td>+25</td><td>HOLD</td><td>11/146</td><td>—</td><td></td></tr><tr><td>30</td><td>0.08103</td><td>0.08082</td><td>+26</td><td>HOLD</td><td>12/146</td><td>—</td><td></td></tr><tr><td>31</td><td>0.08104</td><td>0.08082</td><td>+27</td><td>HOLD</td><td>12/146</td><td>—</td><td></td></tr><tr><td>32</td><td>0.08105</td><td>0.08082</td><td>+28</td><td>HOLD</td><td>12/146</td><td>—</td><td></td></tr><tr><td>33</td><td>0.08056</td><td>0.08082</td><td>-32</td><td>HOLD</td><td>20/146</td><td>—</td><td></td></tr><tr><td>34</td><td>0.08105</td><td>0.08080</td><td>+31</td><td>HOLD</td><td>14/146</td><td>—</td><td></td></tr><tr><td>35</td><td>0.08057</td><td>0.08080</td><td>-28</td><td>HOLD</td><td>17/146</td><td>—</td><td></td></tr><tr><td>36</td><td>0.08057</td><td>0.08080</td><td>-28</td><td>HOLD</td><td>13/146</td><td>—</td><td></td></tr><tr><td>37</td><td>0.08058</td><td>0.08080</td><td>-28</td><td>HOLD</td><td>13/146</td><td>—</td><td></td></tr><tr><td>38</td><td>0.08056</td><td>0.08080</td><td>-30</td><td>HOLD</td><td>14/146</td><td>—</td><td></td></tr><tr><td>39</td><td>0.08055</td><td>0.08081</td><td>-31</td><td>HOLD</td><td>14/146</td><td>—</td><td></td></tr></tbody></table>
 <div class="note">허들(146bp)을 넘는 이탈이 없어 거래하지 않았다. <b>이것이 이 시장에서 정직한 결과다.</b>
-거부 15건은 모두 판단으로 기록됐다(온체인에서는 <code>recordNoTrade</code>로 같은 로그에 남는다).</div>
+거부 20건은 모두 판단으로 기록됐다(온체인에서는 <code>recordNoTrade</code>로 같은 로그에 남는다).</div>
 
 <h2>2. 기계 검증 — 합성 평균회귀 <span class="tag">SYNTHETIC</span></h2>
-<div class="card"><svg viewBox="0 0 640 160" width="100%" preserveAspectRatio="none"><path d="M8.0,129.5 L31.1,104.0 L54.2,78.1 L77.3,76.9 L100.4,126.5 L123.6,101.0 L146.7,75.0 L169.8,73.8 L192.9,130.0 L216.0,81.7 L239.1,32.2 L262.2,30.0 L285.3,124.4 L308.4,76.0 L331.6,40.6 L354.7,40.6 L377.8,40.6 L400.9,40.6 L424.0,40.6 L447.1,40.6 L470.2,40.6 L493.3,40.6 L516.4,40.6 L539.6,40.6 L562.7,40.6 L585.8,40.6 L608.9,40.6 L632.0,40.6" fill="none" stroke="#38d39f" stroke-width="1.8"/></svg><div class="note">거래 3건 (진입 2) · 승 1 · 실현손익 +3.6944 USDT · 수수료 0.5960 · 선언 엣지 359bp → 실현 379bp (신뢰도 10547bp) · 다리당 실행 +269.1bp · 거부 기록 25건 · 최대낙폭 42bp</div></div>
+<div class="card"><svg viewBox="0 0 640 160" width="100%" preserveAspectRatio="none"><path d="M8.0,130.0 L31.1,105.0 L54.2,79.4 L77.3,78.2 L100.4,127.1 L123.6,102.0 L146.7,76.4 L169.8,75.2 L192.9,127.4 L216.0,80.3 L239.1,32.2 L262.2,30.0 L285.3,122.0 L308.4,74.8 L331.6,33.7 L354.7,33.7 L377.8,33.7 L400.9,33.7 L424.0,33.7 L447.1,33.7 L470.2,33.7 L493.3,33.7 L516.4,33.7 L539.6,33.7 L562.7,33.7 L585.8,33.7 L608.9,33.7 L632.0,33.7" fill="none" stroke="#38d39f" stroke-width="1.8"/></svg><div class="note">거래 3건 (진입 2) · 승 1 · 실현손익 +4.3334 USDT · 수수료 0.6012 · 선언 엣지 358bp → 실현 442bp (신뢰도 12346bp) · 다리당 실행 +301.8bp · 거부 기록 25건 · 최대낙폭 43bp</div></div>
 <div class="note">성과 주장이 아니라 <b>실행·회계 기계의 증명</b>이다. 이 패널은 허들을 넘는 이탈(약 4% 급락 후 반등)을 인위적으로
-넣었고, 그 크기는 정직해진 왕복 비용(126bp)을 넘도록 잡았다 — 작은 이탈로는 기계가 돌아도 아무것도 증명되지 않는다.</div>
+넣었고, 그 크기는 정직해진 왕복 비용(66bp)을 넘도록 잡았다 — 작은 이탈로는 기계가 돌아도 아무것도 증명되지 않는다.</div>
 
 <h2>3. 기계 검증 — 합성 하락추세 <span class="tag">SYNTHETIC</span></h2>
 <div class="card"><svg viewBox="0 0 640 160" width="100%" preserveAspectRatio="none"><path d="M8.0,80.0 L22.5,80.0 L37.0,80.0 L51.5,80.0 L66.0,80.0 L80.6,80.0 L95.1,80.0 L109.6,80.0 L124.1,80.0 L138.6,80.0 L153.1,80.0 L167.6,80.0 L182.1,80.0 L196.7,80.0 L211.2,80.0 L225.7,80.0 L240.2,80.0 L254.7,80.0 L269.2,80.0 L283.7,80.0 L298.2,80.0 L312.7,80.0 L327.3,80.0 L341.8,80.0 L356.3,80.0 L370.8,80.0 L385.3,80.0 L399.8,80.0 L414.3,80.0 L428.8,80.0 L443.3,80.0 L457.9,80.0 L472.4,80.0 L486.9,80.0 L501.4,80.0 L515.9,80.0 L530.4,80.0 L544.9,80.0 L559.4,80.0 L574.0,80.0 L588.5,80.0 L603.0,80.0 L617.5,80.0 L632.0,80.0" fill="none" stroke="#ffc857" stroke-width="1.8"/></svg><div class="note">거래 0건 (진입 0) · 승 0 · 실현손익 +0.0000 USDT · 수수료 0.0000 · 선언 엣지 0bp → 실현 0bp (신뢰도 0bp) · 다리당 실행 +0.0bp · 거부 기록 44건 · 최대낙폭 0bp</div></div>
@@ -67,8 +67,10 @@
 라운드트립 주장(양수)과 나눠 사과와 오렌지를 비교했고, 그래서 숫자가 좋아 보이거나 나빠 보이는 쪽으로 쉽게 흔들렸다.</span>
 </div></div>
 
+<h2>4b. 포크 end-to-end — 49개 트랜잭션 <span class="tag">REAL</span></h2><table><thead><tr><th>단계</th><th>결과</th></tr></thead><tbody><tr><td>생성된 이탈</td><td>381bp (실제 라우터 스왑)</td></tr><tr><td>기본 전략</td><td>거부 — adverse trend -188bp vs bar vol 30bp: mean reversion disarmed</td></tr><tr><td>이탈 매수 진입</td><td>50.91 USDT · 주장 166.48bp · tx <code>0x652aad507f99e5e3…</code></td></tr><tr><td>청산</td><td>실현 601.0bp · tx <code>0x85744e532416981b…</code></td></tr><tr><td>볼트 기록</td><td>거래 2 · 선언 166bp → 실현 600bp · 신뢰도 36144bp · 다리당 297bp</td></tr><tr><td>ERC-8004</td><td>검증 100점 · 평판 36144 (= vault.edgeCredibilityBps())</td></tr><tr><td>x402</td><td>0.001 USDT 실정산 · tx <code>0x23d80589d5096ed0…</code> · gas 65840</td></tr><tr><td>장부↔볼트 대조</td><td>4/4 일치</td></tr></tbody></table><div class="note">HSK 메인넷 포크에서 실제 라우터·실제 오라클로 돌린 기록이다. +600bp는 알파가 아니라 스크립트가 만든 반등이며, 증명하는 것은 수익성이 아니라 결정→집행→정산→평판→결제의 연결이다. 재현: <code>python3 scripts/fork_demo.py</code>.</div>
+
 <h2>5. 테스트·감사</h2>
-<table><thead><tr><th>항목</th><th>결과</th></tr></thead><tbody><tr><td>Foundry (단위·정책·fuzz·공유 테이블)</td><td>41건 — 현재 69건 전체 통과</td></tr><tr><td>Foundry (메인넷 포크, 실제 라우터·실제 풀)</td><td>5건 — 실스왑으로 이탈을 만들고 그 이탈을 거래</td></tr><tr><td>불변식</td><td>5종 · 256 runs · 128,000 호출 · revert 0</td></tr><tr><td>Python 에이전트</td><td>48건 (mirror parity·대화형 조정·라이브 배선·EIP-712 온체인 대조 포함)</td></tr><tr><td>Slither</td><td>13건 (High 1 수용 / Medium 1 수용 / Low 9 수용 / Info 2) — 항목별 근거 docs/15_SLITHER_TRIAGE.md</td></tr><tr><td>배포 비용(포크·추정)</td><td>3,802,309 gas ≈ 1.90 HSK (500 gwei) ≈ $0.15 · 바이트코드 18,675B (EIP-170 한도 내)</td></tr></tbody></table>
+<table><thead><tr><th>항목</th><th>결과</th></tr></thead><tbody><tr><td>Foundry (단위·정책·fuzz·공유 테이블)</td><td>46건 — 현재 74건 전체 통과</td></tr><tr><td>Foundry (메인넷 포크, 실제 라우터·실제 풀)</td><td>5건 — 실스왑으로 이탈을 만들고 그 이탈을 거래</td></tr><tr><td>불변식</td><td>5종 · 256 runs · 128,000 호출 · revert 0</td></tr><tr><td>Python 에이전트</td><td>173건 (mirror/guard 파리티·x402·런타임·라이브 배선·시나리오 랩·LLM 경계·HTTP API)</td></tr><tr><td>Slither</td><td>13건 (High 1 수용 / Medium 1 수용 / Low 9 수용 / Info 2) — 항목별 근거 docs/15_SLITHER_TRIAGE.md</td></tr><tr><td>배포 비용(포크·추정)</td><td>3,777,090 gas ≈ 1.8885 HSK (500 gwei) ≈ $0.15 · 바이트코드 16,666B (EIP-170 한도 내)</td></tr></tbody></table>
 
 <h2>6. 이 리포트를 읽는 법</h2>
 <div class="note">

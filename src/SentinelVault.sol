@@ -221,6 +221,7 @@ contract SentinelVault is ReentrancyGuard {
     error InsufficientOutput();
     error OutputMismatch();
     error NothingToSell();
+    error SellExceedsPosition();
     error InvalidConfig();
     error OracleUnavailable();
 
@@ -473,6 +474,10 @@ contract SentinelVault is ReentrancyGuard {
         if (it.fee != m.fee) revert PoolMismatch();
         if (IV3Factory(factory).getPool(it.tokenIn, it.tokenOut, it.fee) != m.pool) revert PoolMismatch();
         if (IERC20(it.tokenIn).balanceOf(address(this)) < it.amountIn) revert InsufficientBalance();
+        // A sell may not exceed the book. Tokens sent to the vault directly (a donation, a mistaken
+        // transfer) are spendable by the owner but are not a position, and the old code discovered that
+        // only in `_settle` — after the swap — as an arithmetic panic. Name it before any value moves.
+        if (!isBuy && positions[asset].qty < it.amountIn) revert SellExceedsPosition();
     }
 
     /// @dev Fair value comes from the pool's own oracle, never from the agent's quote: QuoterV2 reverts

@@ -1,15 +1,16 @@
 {
  "market": "WHSK",
  "pool": "0x4ff515761864e7838B0AdB8b5b2B8B7A068905dC",
- "bars": 35,
+ "bars": 40,
+ "lookback_blocks": 80000,
  "block_span_bars": [
-  30547531,
-  30575735
+  30548651,
+  30614837
  ],
  "impact_bps_at_size": 33.0,
  "impact_bps_exit": 32.7,
  "fee_bps_per_leg": 30.0,
- "full_round_trip_cost_bps": 125.7,
+ "full_round_trip_cost_bps": 65.7,
  "size_quote": 120.0,
  "policy": {
   "min_edge_bps": 146,
@@ -26,6 +27,7 @@
   "metrics": {
    "trades": 0,
    "entries": 0,
+   "exits": 0,
    "wins": 0,
    "hit_rate": 0.0,
    "realised_pnl_quote": 0.0,
@@ -39,108 +41,12 @@
    "edge_credibility_bps": 0.0,
    "execution_edge_sum_bps": 0,
    "avg_execution_edge_bps": 0.0,
-   "no_trade_decisions": 15,
+   "no_trade_decisions": 20,
    "adjustments": 0
   },
   "rows": [
    {
     "i": 20,
-    "price": 0.08104350938808591,
-    "twap": 0.08091495289309183,
-    "dev_bps": 15.9,
-    "action": "HOLD",
-    "edge_bps": 7.15,
-    "hurdle_bps": 146.0,
-    "executed": false,
-    "blocked_by": "",
-    "equity": 1000.0,
-    "reasons": [
-     "conviction 0.23 below 0.55",
-     "edge 7bp below hurdle 146bp (cost 126bp)"
-    ]
-   },
-   {
-    "i": 21,
-    "price": 0.08056198309367345,
-    "twap": 0.08092386059814657,
-    "dev_bps": -44.7,
-    "action": "HOLD",
-    "edge_bps": 23.15,
-    "hurdle_bps": 146.0,
-    "executed": false,
-    "blocked_by": "",
-    "equity": 1000.0,
-    "reasons": [
-     "conviction 0.27 below 0.55",
-     "edge 23bp below hurdle 146bp (cost 126bp)"
-    ]
-   },
-   {
-    "i": 22,
-    "price": 0.08054662475657419,
-    "twap": 0.08090852784642524,
-    "dev_bps": -44.7,
-    "action": "HOLD",
-    "edge_bps": 20.13,
-    "hurdle_bps": 146.0,
-    "executed": false,
-    "blocked_by": "",
-    "equity": 1000.0,
-    "reasons": [
-     "conviction 0.26 below 0.55",
-     "edge 20bp below hurdle 146bp (cost 126bp)"
-    ]
-   },
-   {
-    "i": 23,
-    "price": 0.0805331881413973,
-    "twap": 0.08089175393461792,
-    "dev_bps": -44.3,
-    "action": "HOLD",
-    "edge_bps": 19.95,
-    "hurdle_bps": 146.0,
-    "executed": false,
-    "blocked_by": "",
-    "equity": 1000.0,
-    "reasons": [
-     "conviction 0.26 below 0.55",
-     "edge 20bp below hurdle 146bp (cost 126bp)"
-    ]
-   },
-   {
-    "i": 24,
-    "price": 0.08051975448553811,
-    "twap": 0.08089825002237337,
-    "dev_bps": -46.8,
-    "action": "HOLD",
-    "edge_bps": 21.05,
-    "hurdle_bps": 146.0,
-    "executed": false,
-    "blocked_by": "",
-    "equity": 1000.0,
-    "reasons": [
-     "conviction 0.29 below 0.55",
-     "edge 21bp below hurdle 146bp (cost 126bp)"
-    ]
-   },
-   {
-    "i": 25,
-    "price": 0.08050631863168128,
-    "twap": 0.0808804584672039,
-    "dev_bps": -46.3,
-    "action": "HOLD",
-    "edge_bps": 20.82,
-    "hurdle_bps": 146.0,
-    "executed": false,
-    "blocked_by": "",
-    "equity": 1000.0,
-    "reasons": [
-     "conviction 0.29 below 0.55",
-     "edge 21bp below hurdle 146bp (cost 126bp)"
-    ]
-   },
-   {
-    "i": 26,
     "price": 0.08098323547276777,
     "twap": 0.08086158397074618,
     "dev_bps": 15.0,
@@ -153,11 +59,11 @@
     "reasons": [
      "adverse trend -25bp vs bar vol 0bp: mean reversion disarmed",
      "conviction 0.25 below 0.55",
-     "edge 15bp below hurdle 146bp (cost 126bp)"
+     "edge 15bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
-    "i": 27,
+    "i": 21,
     "price": 0.08099247435205184,
     "twap": 0.08086600704305785,
     "dev_bps": 15.6,
@@ -169,11 +75,11 @@
     "equity": 1000.0,
     "reasons": [
      "conviction 0.24 below 0.55",
-     "edge 13bp below hurdle 146bp (cost 126bp)"
+     "edge 13bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
-    "i": 28,
+    "i": 22,
     "price": 0.08100172146087896,
     "twap": 0.08087031493995814,
     "dev_bps": 16.2,
@@ -185,11 +91,11 @@
     "equity": 1000.0,
     "reasons": [
      "conviction 0.23 below 0.55",
-     "edge 10bp below hurdle 146bp (cost 126bp)"
+     "edge 10bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
-    "i": 29,
+    "i": 23,
     "price": 0.08052313136354819,
     "twap": 0.08087450766456383,
     "dev_bps": -43.4,
@@ -201,11 +107,11 @@
     "equity": 1000.0,
     "reasons": [
      "conviction 0.25 below 0.55",
-     "edge 20bp below hurdle 146bp (cost 126bp)"
+     "edge 20bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
-    "i": 30,
+    "i": 24,
     "price": 0.08052313344738898,
     "twap": 0.08085414553737057,
     "dev_bps": -40.9,
@@ -217,11 +123,11 @@
     "equity": 1000.0,
     "reasons": [
      "conviction 0.26 below 0.55",
-     "edge 18bp below hurdle 146bp (cost 126bp)"
+     "edge 18bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
-    "i": 31,
+    "i": 25,
     "price": 0.08052312906762729,
     "twap": 0.08083309748798621,
     "dev_bps": -38.3,
@@ -233,11 +139,11 @@
     "equity": 1000.0,
     "reasons": [
      "conviction 0.27 below 0.55",
-     "edge 17bp below hurdle 146bp (cost 126bp)"
+     "edge 17bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
-    "i": 32,
+    "i": 26,
     "price": 0.081012666522095,
     "twap": 0.08081158680246184,
     "dev_bps": 24.9,
@@ -249,11 +155,11 @@
     "equity": 1000.0,
     "reasons": [
      "conviction 0.25 below 0.55",
-     "edge 16bp below hurdle 146bp (cost 126bp)"
+     "edge 16bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
-    "i": 33,
+    "i": 27,
     "price": 0.0810126676775225,
     "twap": 0.08081409124867454,
     "dev_bps": 24.6,
@@ -265,23 +171,199 @@
     "equity": 1000.0,
     "reasons": [
      "conviction 0.23 below 0.55",
-     "edge 12bp below hurdle 146bp (cost 126bp)"
+     "edge 12bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
-    "i": 34,
-    "price": 0.08052732078546647,
+    "i": 28,
+    "price": 0.0810143954248366,
     "twap": 0.080816130601164,
-    "dev_bps": -35.7,
+    "dev_bps": 24.5,
     "action": "HOLD",
-    "edge_bps": 17.88,
+    "edge_bps": 11.04,
+    "hurdle_bps": 146.0,
+    "executed": false,
+    "blocked_by": "",
+    "equity": 1000.0,
+    "reasons": [
+     "conviction 0.24 below 0.55",
+     "edge 11bp below hurdle 146bp (cost 66bp)"
+    ]
+   },
+   {
+    "i": 29,
+    "price": 0.0810220211038961,
+    "twap": 0.08081781156521628,
+    "dev_bps": 25.3,
+    "action": "HOLD",
+    "edge_bps": 11.37,
+    "hurdle_bps": 146.0,
+    "executed": false,
+    "blocked_by": "",
+    "equity": 1000.0,
+    "reasons": [
+     "conviction 0.24 below 0.55",
+     "edge 11bp below hurdle 146bp (cost 66bp)"
+    ]
+   },
+   {
+    "i": 30,
+    "price": 0.08103005756578949,
+    "twap": 0.08081944199300653,
+    "dev_bps": 26.1,
+    "action": "HOLD",
+    "edge_bps": 11.73,
+    "hurdle_bps": 146.0,
+    "executed": false,
+    "blocked_by": "",
+    "equity": 1000.0,
+    "reasons": [
+     "conviction 0.24 below 0.55",
+     "edge 12bp below hurdle 146bp (cost 66bp)"
+    ]
+   },
+   {
+    "i": 31,
+    "price": 0.08103767156862744,
+    "twap": 0.08082093596104652,
+    "dev_bps": 26.8,
+    "action": "HOLD",
+    "edge_bps": 12.07,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
      "conviction 0.25 below 0.55",
-     "edge 18bp below hurdle 146bp (cost 126bp)"
+     "edge 12bp below hurdle 146bp (cost 66bp)"
+    ]
+   },
+   {
+    "i": 32,
+    "price": 0.08104650455927051,
+    "twap": 0.08082223298803312,
+    "dev_bps": 27.7,
+    "action": "HOLD",
+    "edge_bps": 12.49,
+    "hurdle_bps": 146.0,
+    "executed": false,
+    "blocked_by": "",
+    "equity": 1000.0,
+    "reasons": [
+     "conviction 0.26 below 0.55",
+     "edge 12bp below hurdle 146bp (cost 66bp)"
+    ]
+   },
+   {
+    "i": 33,
+    "price": 0.08056427500172351,
+    "twap": 0.08082339389903018,
+    "dev_bps": -32.1,
+    "action": "HOLD",
+    "edge_bps": 19.87,
+    "hurdle_bps": 146.0,
+    "executed": false,
+    "blocked_by": "",
+    "equity": 1000.0,
+    "reasons": [
+     "conviction 0.26 below 0.55",
+     "edge 20bp below hurdle 146bp (cost 66bp)"
+    ]
+   },
+   {
+    "i": 34,
+    "price": 0.08105369609856262,
+    "twap": 0.08079992315424872,
+    "dev_bps": 31.4,
+    "action": "HOLD",
+    "edge_bps": 14.13,
+    "hurdle_bps": 146.0,
+    "executed": false,
+    "blocked_by": "",
+    "equity": 1000.0,
+    "reasons": [
+     "conviction 0.24 below 0.55",
+     "edge 14bp below hurdle 146bp (cost 66bp)"
+    ]
+   },
+   {
+    "i": 35,
+    "price": 0.0805726844627299,
+    "twap": 0.08080043248977256,
+    "dev_bps": -28.2,
+    "action": "HOLD",
+    "edge_bps": 17.39,
+    "hurdle_bps": 146.0,
+    "executed": false,
+    "blocked_by": "",
+    "equity": 1000.0,
+    "reasons": [
+     "conviction 0.25 below 0.55",
+     "edge 17bp below hurdle 146bp (cost 66bp)"
+    ]
+   },
+   {
+    "i": 36,
+    "price": 0.08057333333333333,
+    "twap": 0.08080096755822538,
+    "dev_bps": -28.2,
+    "action": "HOLD",
+    "edge_bps": 13.31,
+    "hurdle_bps": 146.0,
+    "executed": false,
+    "blocked_by": "",
+    "equity": 1000.0,
+    "reasons": [
+     "conviction 0.24 below 0.55",
+     "edge 13bp below hurdle 146bp (cost 66bp)"
+    ]
+   },
+   {
+    "i": 37,
+    "price": 0.08057527087839879,
+    "twap": 0.08080230298706334,
+    "dev_bps": -28.1,
+    "action": "HOLD",
+    "edge_bps": 12.64,
+    "hurdle_bps": 146.0,
+    "executed": false,
+    "blocked_by": "",
+    "equity": 1000.0,
+    "reasons": [
+     "conviction 0.24 below 0.55",
+     "edge 13bp below hurdle 146bp (cost 66bp)"
+    ]
+   },
+   {
+    "i": 38,
+    "price": 0.0805599028208189,
+    "twap": 0.08080440712391342,
+    "dev_bps": -30.3,
+    "action": "HOLD",
+    "edge_bps": 13.62,
+    "hurdle_bps": 146.0,
+    "executed": false,
+    "blocked_by": "",
+    "equity": 1000.0,
+    "reasons": [
+     "conviction 0.25 below 0.55",
+     "edge 14bp below hurdle 146bp (cost 66bp)"
+    ]
+   },
+   {
+    "i": 39,
+    "price": 0.08055413970352142,
+    "twap": 0.08080641454067745,
+    "dev_bps": -31.2,
+    "action": "HOLD",
+    "edge_bps": 14.05,
+    "hurdle_bps": 146.0,
+    "executed": false,
+    "blocked_by": "",
+    "equity": 1000.0,
+    "reasons": [
+     "conviction 0.26 below 0.55",
+     "edge 14bp below hurdle 146bp (cost 66bp)"
     ]
    }
   ],
@@ -345,15 +427,29 @@
    [
     1760020400,
     1000.0
+   ],
+   [
+    1760021000,
+    1000.0
+   ],
+   [
+    1760021600,
+    1000.0
+   ],
+   [
+    1760022200,
+    1000.0
+   ],
+   [
+    1760022800,
+    1000.0
+   ],
+   [
+    1760023400,
+    1000.0
    ]
   ],
   "closes": [
-   0.08086535528699128,
-   0.08086863812810008,
-   0.08088210299272042,
-   0.08040326638628835,
-   0.08087558558892749,
-   0.08088380856083587,
    0.08089477402653436,
    0.08090631641404607,
    0.08091786696876517,
@@ -382,7 +478,18 @@
    0.08052312906762729,
    0.081012666522095,
    0.0810126676775225,
-   0.08052732078546647
+   0.0810143954248366,
+   0.0810220211038961,
+   0.08103005756578949,
+   0.08103767156862744,
+   0.08104650455927051,
+   0.08056427500172351,
+   0.08105369609856262,
+   0.0805726844627299,
+   0.08057333333333333,
+   0.08057527087839879,
+   0.0805599028208189,
+   0.08055413970352142
   ],
   "label": "REAL recorded HSKSwap bars"
  },
@@ -390,589 +497,590 @@
   "metrics": {
    "trades": 3,
    "entries": 2,
+   "exits": 1,
    "wins": 1,
-   "hit_rate": 0.3333333333333333,
-   "realised_pnl_quote": 3.694418,
-   "fees_paid_quote": 0.596037,
-   "equity": 1003.694418,
-   "high_water": 1004.173698,
-   "max_drawdown_bps": 42.5,
-   "sharpe": 0.563,
-   "declared_edge_sum_bps": 359.3,
-   "realised_edge_sum_bps": 378.9,
-   "edge_credibility_bps": 10546.7,
-   "execution_edge_sum_bps": 807.4,
-   "avg_execution_edge_bps": 269.1,
+   "hit_rate": 1.0,
+   "realised_pnl_quote": 4.333365,
+   "fees_paid_quote": 0.601202,
+   "equity": 1004.333365,
+   "high_water": 1004.508612,
+   "max_drawdown_bps": 42.9,
+   "sharpe": 0.622,
+   "declared_edge_sum_bps": 358.0,
+   "realised_edge_sum_bps": 442.0,
+   "edge_credibility_bps": 12346.5,
+   "execution_edge_sum_bps": 905.5,
+   "avg_execution_edge_bps": 301.8,
    "no_trade_decisions": 25,
    "adjustments": 0
   },
   "rows": [
    {
     "i": 20,
-    "price": 0.07714517331247688,
-    "twap": 0.08079345783324778,
-    "dev_bps": -451.6,
+    "price": 0.07717086583597352,
+    "twap": 0.08080880559426946,
+    "dev_bps": -450.2,
     "action": "BUY",
-    "edge_bps": 203.2,
+    "edge_bps": 202.59,
     "hurdle_bps": 146.0,
     "executed": true,
     "blocked_by": "",
-    "equity": 999.676203,
+    "equity": 999.827634,
     "reasons": [
-     "spot 452bp below TWAP, reversion edge 203bp > hurdle 146bp"
+     "spot 450bp below TWAP, reversion edge 203bp > hurdle 146bp"
     ]
    },
    {
     "i": 21,
-    "price": 0.0788809397120076,
-    "twap": 0.08060124587146707,
-    "dev_bps": -213.4,
+    "price": 0.07890721031728291,
+    "twap": 0.08061818711242974,
+    "dev_bps": -212.2,
     "action": "HOLD",
-    "edge_bps": 96.05,
+    "edge_bps": 95.5,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1000.825483,
+    "equity": 1000.999428,
     "reasons": [
-     "adverse trend -115bp vs bar vol 0bp: mean reversion disarmed",
-     "edge 96bp below hurdle 146bp (cost 126bp)"
+     "adverse trend -125bp vs bar vol 0bp: mean reversion disarmed",
+     "edge 96bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 22,
-    "price": 0.08065576085552777,
-    "twap": 0.08049528394681796,
-    "dev_bps": 19.9,
+    "price": 0.08068262254942178,
+    "twap": 0.0805139239106913,
+    "dev_bps": 21.0,
     "action": "HOLD",
-    "edge_bps": 19.94,
+    "edge_bps": 20.95,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1002.000621,
+    "equity": 1002.197588,
     "reasons": [
-     "adverse trend -123bp vs bar vol 0bp: mean reversion disarmed",
-     "conviction 0.39 below 0.55",
-     "edge 20bp below hurdle 146bp (cost 126bp)"
+     "adverse trend -129bp vs bar vol 0bp: mean reversion disarmed",
+     "conviction 0.40 below 0.55",
+     "edge 21bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 23,
-    "price": 0.08073641661638328,
-    "twap": 0.08047748543814956,
-    "dev_bps": 32.2,
+    "price": 0.0807633051719712,
+    "twap": 0.08049796896511843,
+    "dev_bps": 33.0,
     "action": "HOLD",
-    "edge_bps": 32.17,
+    "edge_bps": 32.96,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1002.054024,
+    "equity": 1002.252038,
     "reasons": [
-     "adverse trend -66bp vs bar vol 0bp: mean reversion disarmed",
+     "adverse trend -67bp vs bar vol 0bp: mean reversion disarmed",
      "conviction 0.33 below 0.55",
-     "edge 32bp below hurdle 146bp (cost 126bp)"
+     "edge 33bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 24,
-    "price": 0.07734548711849518,
-    "twap": 0.08046314195200228,
-    "dev_bps": -387.5,
+    "price": 0.0773712463547484,
+    "twap": 0.08050997765553959,
+    "dev_bps": -389.9,
     "action": "HOLD",
-    "edge_bps": 174.36,
+    "edge_bps": 175.44,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 999.808834,
+    "equity": 999.962863,
     "reasons": [
-     "adverse trend -32bp vs bar vol 0bp: mean reversion disarmed"
+     "adverse trend -30bp vs bar vol 0bp: mean reversion disarmed"
     ]
    },
    {
     "i": 25,
-    "price": 0.07908576057866132,
-    "twap": 0.0802787318130594,
-    "dev_bps": -148.6,
+    "price": 0.07911209939773024,
+    "twap": 0.08035238330090756,
+    "dev_bps": -154.4,
     "action": "HOLD",
-    "edge_bps": 66.87,
+    "edge_bps": 69.46,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1000.961098,
+    "equity": 1001.1377,
     "reasons": [
-     "adverse trend -117bp vs bar vol 0bp: mean reversion disarmed",
+     "adverse trend -108bp vs bar vol 0bp: mean reversion disarmed",
      "conviction 0.54 below 0.55",
-     "edge 67bp below hurdle 146bp (cost 126bp)"
+     "edge 69bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 26,
-    "price": 0.08086519019168119,
-    "twap": 0.08018084437258817,
-    "dev_bps": 85.4,
+    "price": 0.08089212163417916,
+    "twap": 0.0802818318174127,
+    "dev_bps": 76.0,
     "action": "HOLD",
-    "edge_bps": 85.35,
+    "edge_bps": 76.02,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1002.139287,
+    "equity": 1002.338971,
     "reasons": [
-     "adverse trend -137bp vs bar vol 0bp: mean reversion disarmed",
+     "adverse trend -145bp vs bar vol 0bp: mean reversion disarmed",
      "conviction 0.49 below 0.55",
-     "edge 85bp below hurdle 146bp (cost 126bp)"
+     "edge 76bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 27,
-    "price": 0.08094605538187286,
-    "twap": 0.08019600472748856,
-    "dev_bps": 93.5,
+    "price": 0.08097301375581334,
+    "twap": 0.08027580457301692,
+    "dev_bps": 86.9,
     "action": "HOLD",
-    "edge_bps": 57.5,
+    "edge_bps": 56.99,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1002.192829,
+    "equity": 1002.393562,
     "reasons": [
-     "adverse trend -44bp vs bar vol 0bp: mean reversion disarmed",
+     "adverse trend -51bp vs bar vol 0bp: mean reversion disarmed",
      "conviction 0.38 below 0.55",
-     "edge 58bp below hurdle 146bp (cost 126bp)"
+     "edge 57bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 28,
-    "price": 0.07754632105583419,
-    "twap": 0.08021597625875349,
-    "dev_bps": -332.8,
+    "price": 0.07757214717806918,
+    "twap": 0.08027382187693147,
+    "dev_bps": -336.6,
     "action": "BUY",
-    "edge_bps": 156.1,
+    "edge_bps": 155.43,
     "hurdle_bps": 146.0,
     "executed": true,
     "blocked_by": "",
-    "equity": 999.651483,
+    "equity": 999.947422,
     "reasons": [
-     "spot 333bp below TWAP, reversion edge 156bp > hurdle 146bp"
+     "spot 337bp below TWAP, reversion edge 155bp > hurdle 146bp"
     ]
    },
    {
     "i": 29,
-    "price": 0.07929111327959046,
-    "twap": 0.08006663290447533,
-    "dev_bps": -96.9,
+    "price": 0.07931752048957573,
+    "twap": 0.08010170946459308,
+    "dev_bps": -97.9,
     "action": "HOLD",
-    "edge_bps": 43.59,
+    "edge_bps": 44.05,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1001.837219,
+    "equity": 1002.151996,
     "reasons": [
-     "adverse trend -63bp vs bar vol 0bp: mean reversion disarmed",
-     "conviction 0.40 below 0.55",
-     "edge 44bp below hurdle 146bp (cost 126bp)"
+     "adverse trend -69bp vs bar vol 0bp: mean reversion disarmed",
+     "conviction 0.41 below 0.55",
+     "edge 44bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 30,
-    "price": 0.08107516332838124,
-    "twap": 0.08000520084417795,
-    "dev_bps": 133.7,
+    "price": 0.08110216470059119,
+    "twap": 0.08001648443387707,
+    "dev_bps": 135.7,
     "action": "HOLD",
-    "edge_bps": 93.74,
+    "edge_bps": 96.76,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1004.072134,
+    "equity": 1004.406172,
     "reasons": [
-     "adverse trend -96bp vs bar vol 0bp: mean reversion disarmed",
-     "conviction 0.50 below 0.55",
-     "edge 94bp below hurdle 146bp (cost 126bp)"
+     "adverse trend -102bp vs bar vol 0bp: mean reversion disarmed",
+     "conviction 0.51 below 0.55",
+     "edge 97bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 31,
-    "price": 0.08115623849170962,
-    "twap": 0.08003364307901295,
-    "dev_bps": 140.3,
+    "price": 0.08118326686529177,
+    "twap": 0.08002008979061716,
+    "dev_bps": 145.4,
     "action": "HOLD",
-    "edge_bps": 68.28,
+    "edge_bps": 69.76,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1004.173698,
+    "equity": 1004.508612,
     "reasons": [
-     "conviction 0.39 below 0.55",
-     "edge 68bp below hurdle 146bp (cost 126bp)"
+     "conviction 0.40 below 0.55",
+     "edge 70bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 32,
-    "price": 0.07774767647505781,
-    "twap": 0.08004229322996004,
-    "dev_bps": -286.7,
+    "price": 0.07777356965694951,
+    "twap": 0.08002736955545037,
+    "dev_bps": -281.6,
     "action": "HOLD",
-    "edge_bps": 144.52,
+    "edge_bps": 142.99,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 999.903725,
+    "equity": 1000.201838,
     "reasons": [
-     "edge 145bp below hurdle 146bp (cost 126bp)"
+     "edge 143bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 33,
-    "price": 0.07949699919574661,
-    "twap": 0.07988005333611034,
-    "dev_bps": -48.0,
+    "price": 0.07952347497423087,
+    "twap": 0.07986372281033433,
+    "dev_bps": -42.6,
     "action": "HOLD",
-    "edge_bps": 21.58,
+    "edge_bps": 19.17,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1002.095136,
+    "equity": 1002.412136,
     "reasons": [
-     "adverse trend -40bp vs bar vol 0bp: mean reversion disarmed",
-     "conviction 0.31 below 0.55",
-     "edge 22bp below hurdle 146bp (cost 126bp)"
+     "adverse trend -29bp vs bar vol 0bp: mean reversion disarmed",
+     "conviction 0.29 below 0.55",
+     "edge 19bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 34,
-    "price": 0.0812856816776509,
-    "twap": 0.07980481722285372,
-    "dev_bps": 185.6,
+    "price": 0.08131275316115107,
+    "twap": 0.0798116828089597,
+    "dev_bps": 188.1,
     "action": "SELL",
-    "edge_bps": 106.99,
+    "edge_bps": 110.6,
     "hurdle_bps": 146.0,
     "executed": true,
     "blocked_by": "",
-    "equity": 1003.694418,
+    "equity": 1004.333365,
     "reasons": [
-     "spot above TWAP (+186bp, RSI 48) -> take profit",
-     "adverse trend -67bp vs bar vol 0bp: mean reversion disarmed",
-     "conviction 0.52 below 0.55",
-     "edge 107bp below hurdle 146bp (cost 126bp)"
+     "spot above TWAP (+188bp, RSI 48) -> take profit",
+     "adverse trend -74bp vs bar vol 0bp: mean reversion disarmed",
+     "conviction 0.53 below 0.55",
+     "edge 111bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 35,
-    "price": 0.08136696735932855,
-    "twap": 0.07984294473855887,
-    "dev_bps": 190.9,
+    "price": 0.08139406591431221,
+    "twap": 0.07982463566208911,
+    "dev_bps": 196.6,
     "action": "HOLD",
-    "edge_bps": 85.89,
+    "edge_bps": 88.47,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1003.694418,
+    "equity": 1004.333365,
     "reasons": [
-     "conviction 0.46 below 0.55",
-     "edge 86bp below hurdle 146bp (cost 126bp)"
+     "conviction 0.47 below 0.55",
+     "edge 88bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 36,
-    "price": 0.07794955473023675,
-    "twap": 0.07988513643415583,
-    "dev_bps": -242.3,
+    "price": 0.0779755151459111,
+    "twap": 0.07986570473466822,
+    "dev_bps": -236.7,
     "action": "HOLD",
-    "edge_bps": 135.5,
+    "edge_bps": 133.51,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1003.694418,
+    "equity": 1004.333365,
     "reasons": [
-     "edge 136bp below hurdle 146bp (cost 126bp)"
+     "edge 134bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 37,
-    "price": 0.07970341971166707,
-    "twap": 0.07975645771728632,
-    "dev_bps": -6.6,
+    "price": 0.0797299642366941,
+    "twap": 0.07973581382529712,
+    "dev_bps": -0.7,
     "action": "HOLD",
-    "edge_bps": 2.99,
+    "edge_bps": 0.33,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1003.694418,
+    "equity": 1004.333365,
     "reasons": [
-     "conviction 0.23 below 0.55",
-     "edge 3bp below hurdle 146bp (cost 126bp)"
+     "conviction 0.21 below 0.55",
+     "edge 0bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 38,
-    "price": 0.08149674665517957,
-    "twap": 0.07969099537676491,
-    "dev_bps": 226.6,
+    "price": 0.08152388843201971,
+    "twap": 0.07969354849321189,
+    "dev_bps": 229.7,
     "action": "HOLD",
-    "edge_bps": 121.94,
+    "edge_bps": 120.21,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1003.694418,
+    "equity": 1004.333365,
     "reasons": [
-     "adverse trend -57bp vs bar vol 0bp: mean reversion disarmed",
-     "edge 122bp below hurdle 146bp (cost 126bp)"
+     "adverse trend -48bp vs bar vol 0bp: mean reversion disarmed",
+     "edge 120bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 39,
-    "price": 0.08157824340183474,
-    "twap": 0.07971519932564777,
+    "price": 0.08160541232045172,
+    "twap": 0.07974174777377192,
     "dev_bps": 233.7,
     "action": "HOLD",
     "edge_bps": 105.17,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1003.694418,
+    "equity": 1004.333365,
     "reasons": [
      "conviction 0.54 below 0.55",
-     "edge 105bp below hurdle 146bp (cost 126bp)"
+     "edge 105bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 40,
-    "price": 0.07815195717895768,
-    "twap": 0.07976774545646617,
+    "price": 0.07817798500299275,
+    "twap": 0.07979431140461843,
     "dev_bps": -202.6,
     "action": "HOLD",
     "edge_bps": 143.4,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1003.694418,
+    "equity": 1004.333365,
     "reasons": [
-     "edge 143bp below hurdle 146bp (cost 126bp)"
+     "edge 143bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 41,
-    "price": 0.07991037621548422,
-    "twap": 0.07981808464979022,
+    "price": 0.07993698966556008,
+    "twap": 0.0798446673629694,
     "dev_bps": 11.6,
     "action": "HOLD",
     "edge_bps": 5.2,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1003.694418,
+    "equity": 1004.333365,
     "reasons": [
      "conviction 0.25 below 0.55",
-     "edge 5bp below hurdle 146bp (cost 126bp)"
+     "edge 5bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 42,
-    "price": 0.08170835968033262,
-    "twap": 0.07986955647496405,
+    "price": 0.08173557193303518,
+    "twap": 0.07989615633038324,
     "dev_bps": 230.2,
     "action": "HOLD",
     "edge_bps": 119.89,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1003.694418,
+    "equity": 1004.333365,
     "reasons": [
      "adverse trend -47bp vs bar vol 0bp: mean reversion disarmed",
      "conviction 0.55 below 0.55",
-     "edge 120bp below hurdle 146bp (cost 126bp)"
+     "edge 120bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 43,
-    "price": 0.08179006804001294,
-    "twap": 0.07992218641620429,
+    "price": 0.08181730750496821,
+    "twap": 0.07994880379956393,
     "dev_bps": 233.7,
     "action": "HOLD",
     "edge_bps": 105.17,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1003.694418,
+    "equity": 1004.333365,
     "reasons": [
      "conviction 0.54 below 0.55",
-     "edge 105bp below hurdle 146bp (cost 126bp)"
+     "edge 105bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 44,
-    "price": 0.0783548851823324,
-    "twap": 0.07997486898738577,
+    "price": 0.07838098058975955,
+    "twap": 0.08000150391621377,
     "dev_bps": -202.6,
     "action": "HOLD",
     "edge_bps": 143.4,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1003.694418,
+    "equity": 1004.333365,
     "reasons": [
-     "edge 143bp below hurdle 146bp (cost 126bp)"
+     "edge 143bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 45,
-    "price": 0.08011787009893487,
-    "twap": 0.08002533889057764,
+    "price": 0.08014455265302914,
+    "twap": 0.08005199062796434,
     "dev_bps": 11.6,
     "action": "HOLD",
     "edge_bps": 5.2,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1003.694418,
+    "equity": 1004.333365,
     "reasons": [
      "conviction 0.25 below 0.55",
-     "edge 5bp below hurdle 146bp (cost 126bp)"
+     "edge 5bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 46,
-    "price": 0.0819205221761609,
-    "twap": 0.08007694436659132,
+    "price": 0.08194780508772229,
+    "twap": 0.08010361329072928,
     "dev_bps": 230.2,
     "action": "HOLD",
     "edge_bps": 119.89,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1003.694418,
+    "equity": 1004.333365,
     "reasons": [
      "adverse trend -47bp vs bar vol 0bp: mean reversion disarmed",
      "conviction 0.55 below 0.55",
-     "edge 120bp below hurdle 146bp (cost 126bp)"
+     "edge 120bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 47,
-    "price": 0.08200244269833705,
-    "twap": 0.08012971096581531,
+    "price": 0.08202975289281,
+    "twap": 0.08015639746340644,
     "dev_bps": 233.7,
     "action": "HOLD",
     "edge_bps": 105.17,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
-    "equity": 1003.694418,
+    "equity": 1004.333365,
     "reasons": [
      "conviction 0.54 below 0.55",
-     "edge 105bp below hurdle 146bp (cost 126bp)"
+     "edge 105bp below hurdle 146bp (cost 66bp)"
     ]
    }
   ],
   "equity": [
    [
     1760012000,
-    999.676203
+    999.827634
    ],
    [
     1760012600,
-    1000.825483
+    1000.999428
    ],
    [
     1760013200,
-    1002.000621
+    1002.197588
    ],
    [
     1760013800,
-    1002.054024
+    1002.252038
    ],
    [
     1760014400,
-    999.808834
+    999.962863
    ],
    [
     1760015000,
-    1000.961098
+    1001.1377
    ],
    [
     1760015600,
-    1002.139287
+    1002.338971
    ],
    [
     1760016200,
-    1002.192829
+    1002.393562
    ],
    [
     1760016800,
-    999.651483
+    999.947422
    ],
    [
     1760017400,
-    1001.837219
+    1002.151996
    ],
    [
     1760018000,
-    1004.072134
+    1004.406172
    ],
    [
     1760018600,
-    1004.173698
+    1004.508612
    ],
    [
     1760019200,
-    999.903725
+    1000.201838
    ],
    [
     1760019800,
-    1002.095136
+    1002.412136
    ],
    [
     1760020400,
-    1003.694418
+    1004.333365
    ],
    [
     1760021000,
-    1003.694418
+    1004.333365
    ],
    [
     1760021600,
-    1003.694418
+    1004.333365
    ],
    [
     1760022200,
-    1003.694418
+    1004.333365
    ],
    [
     1760022800,
-    1003.694418
+    1004.333365
    ],
    [
     1760023400,
-    1003.694418
+    1004.333365
    ],
    [
     1760024000,
-    1003.694418
+    1004.333365
    ],
    [
     1760024600,
-    1003.694418
+    1004.333365
    ],
    [
     1760025200,
-    1003.694418
+    1004.333365
    ],
    [
     1760025800,
-    1003.694418
+    1004.333365
    ],
    [
     1760026400,
-    1003.694418
+    1004.333365
    ],
    [
     1760027000,
-    1003.694418
+    1004.333365
    ],
    [
     1760027600,
-    1003.694418
+    1004.333365
    ],
    [
     1760028200,
-    1003.694418
+    1004.333365
    ]
   ],
   "label": "SYNTHETIC mean-reversion"
@@ -981,6 +1089,7 @@
   "metrics": {
    "trades": 0,
    "entries": 0,
+   "exits": 0,
    "wins": 0,
    "hit_rate": 0.0,
    "realised_pnl_quote": 0.0,
@@ -1000,273 +1109,288 @@
   "rows": [
    {
     "i": 20,
-    "price": 0.08004415686075367,
-    "twap": 0.08079345783324778,
-    "dev_bps": -92.7,
+    "price": 0.0800708148653003,
+    "twap": 0.08080880559426946,
+    "dev_bps": -91.3,
     "action": "HOLD",
-    "edge_bps": 41.73,
+    "edge_bps": 41.1,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "conviction 0.33 below 0.55",
-     "edge 42bp below hurdle 146bp (cost 126bp)"
+     "conviction 0.34 below 0.55",
+     "edge 41bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 21,
-    "price": 0.07956389191958914,
-    "twap": 0.08074619504888089,
-    "dev_bps": -146.4,
+    "price": 0.0795903899761085,
+    "twap": 0.08076318456389608,
+    "dev_bps": -145.2,
     "action": "HOLD",
-    "edge_bps": 65.89,
+    "edge_bps": 65.35,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -29bp vs bar vol 0bp: mean reversion disarmed",
-     "conviction 0.42 below 0.55",
-     "edge 66bp below hurdle 146bp (cost 126bp)"
+     "adverse trend -39bp vs bar vol 0bp: mean reversion disarmed",
+     "conviction 0.43 below 0.55",
+     "edge 65bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 22,
-    "price": 0.0790865085680716,
-    "twap": 0.08067438073461088,
-    "dev_bps": -196.8,
+    "price": 0.07911284763625184,
+    "twap": 0.08069308034509892,
+    "dev_bps": -195.8,
     "action": "HOLD",
-    "edge_bps": 88.57,
+    "edge_bps": 88.12,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -54bp vs bar vol 0bp: mean reversion disarmed",
+     "adverse trend -60bp vs bar vol 0bp: mean reversion disarmed",
      "conviction 0.52 below 0.55",
-     "edge 89bp below hurdle 146bp (cost 126bp)"
+     "edge 88bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 23,
-    "price": 0.07861198951666318,
-    "twap": 0.08057811961156967,
-    "dev_bps": -244.0,
+    "price": 0.07863817055043433,
+    "twap": 0.08059863665386756,
+    "dev_bps": -243.2,
     "action": "HOLD",
-    "edge_bps": 109.8,
+    "edge_bps": 109.46,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
      "adverse trend -76bp vs bar vol 0bp: mean reversion disarmed",
-     "edge 110bp below hurdle 146bp (cost 126bp)"
+     "edge 109bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 24,
-    "price": 0.0781403175795632,
-    "twap": 0.08045755477043638,
-    "dev_bps": -288.0,
+    "price": 0.07816634152713173,
+    "twap": 0.08050438861321187,
+    "dev_bps": -290.4,
     "action": "HOLD",
-    "edge_bps": 129.6,
+    "edge_bps": 130.69,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -106bp vs bar vol 0bp: mean reversion disarmed",
-     "edge 130bp below hurdle 146bp (cost 126bp)"
+     "adverse trend -103bp vs bar vol 0bp: mean reversion disarmed",
+     "edge 131bp below hurdle 146bp (cost 66bp)"
     ]
    },
    {
     "i": 25,
-    "price": 0.07767147567408582,
-    "twap": 0.0803128861545469,
-    "dev_bps": -328.9,
+    "price": 0.07769734347796893,
+    "twap": 0.08038654901719901,
+    "dev_bps": -334.5,
     "action": "HOLD",
-    "edge_bps": 148.0,
+    "edge_bps": 150.54,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -140bp vs bar vol 0bp: mean reversion disarmed"
+     "adverse trend -131bp vs bar vol 0bp: mean reversion disarmed"
     ]
    },
    {
     "i": 26,
-    "price": 0.07720544682004131,
-    "twap": 0.08014428446884689,
-    "dev_bps": -366.7,
+    "price": 0.07723115941710111,
+    "twap": 0.0802452597377161,
+    "dev_bps": -375.6,
     "action": "HOLD",
-    "edge_bps": 165.01,
+    "edge_bps": 169.02,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -163bp vs bar vol 0bp: mean reversion disarmed"
+     "adverse trend -171bp vs bar vol 0bp: mean reversion disarmed"
     ]
    },
    {
     "i": 27,
-    "price": 0.07674221413912106,
-    "twap": 0.07997645765516528,
-    "dev_bps": -404.4,
+    "price": 0.0767677724605985,
+    "twap": 0.0800561843824664,
+    "dev_bps": -410.8,
     "action": "HOLD",
-    "edge_bps": 181.98,
+    "edge_bps": 184.84,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -192bp vs bar vol 0bp: mean reversion disarmed"
+     "adverse trend -199bp vs bar vol 0bp: mean reversion disarmed"
     ]
    },
    {
     "i": 28,
-    "price": 0.07628176085428634,
-    "twap": 0.07978623712429264,
-    "dev_bps": -439.2,
+    "price": 0.07630716582583491,
+    "twap": 0.0798439396216202,
+    "dev_bps": -443.0,
     "action": "HOLD",
-    "edge_bps": 197.65,
+    "edge_bps": 199.33,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -217bp vs bar vol 0bp: mean reversion disarmed"
+     "adverse trend -224bp vs bar vol 0bp: mean reversion disarmed"
     ]
    },
    {
     "i": 29,
-    "price": 0.07582407028916062,
-    "twap": 0.07957366575993709,
-    "dev_bps": -471.2,
+    "price": 0.0758493228308799,
+    "twap": 0.0796085781416701,
+    "dev_bps": -472.2,
     "action": "HOLD",
-    "edge_bps": 212.04,
+    "edge_bps": 212.5,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -241bp vs bar vol 0bp: mean reversion disarmed"
+     "adverse trend -247bp vs bar vol 0bp: mean reversion disarmed"
     ]
    },
    {
     "i": 30,
-    "price": 0.07536912586742565,
-    "twap": 0.07933888155011821,
-    "dev_bps": -500.4,
+    "price": 0.07539422689389462,
+    "twap": 0.07934994322801929,
+    "dev_bps": -498.5,
     "action": "HOLD",
-    "edge_bps": 225.16,
+    "edge_bps": 224.33,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -262bp vs bar vol 0bp: mean reversion disarmed"
+     "adverse trend -268bp vs bar vol 0bp: mean reversion disarmed"
     ]
    },
    {
     "i": 31,
-    "price": 0.0749169111122211,
-    "twap": 0.07908202191190543,
-    "dev_bps": -526.7,
+    "price": 0.07494186153253125,
+    "twap": 0.07906815169442456,
+    "dev_bps": -521.9,
     "action": "HOLD",
-    "edge_bps": 237.01,
+    "edge_bps": 234.84,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -289bp vs bar vol 0bp: mean reversion disarmed"
+     "adverse trend -287bp vs bar vol 0bp: mean reversion disarmed"
     ]
    },
    {
     "i": 32,
-    "price": 0.07446740964554777,
-    "twap": 0.0787787056938781,
-    "dev_bps": -547.3,
+    "price": 0.07449221036333607,
+    "twap": 0.07876336119261974,
+    "dev_bps": -542.3,
     "action": "HOLD",
-    "edge_bps": 246.27,
+    "edge_bps": 244.02,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -306bp vs bar vol 0bp: mean reversion disarmed"
+     "adverse trend -304bp vs bar vol 0bp: mean reversion disarmed"
     ]
    },
    {
     "i": 33,
-    "price": 0.07402060518767448,
-    "twap": 0.0784524524585529,
-    "dev_bps": -564.9,
+    "price": 0.07404525710115606,
+    "twap": 0.07843564648282302,
+    "dev_bps": -559.7,
     "action": "HOLD",
-    "edge_bps": 254.21,
+    "edge_bps": 251.88,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -322bp vs bar vol 0bp: mean reversion disarmed"
+     "adverse trend -312bp vs bar vol 0bp: mean reversion disarmed"
     ]
    },
    {
     "i": 34,
-    "price": 0.07357648155654843,
-    "twap": 0.07810339664489266,
-    "dev_bps": -579.6,
+    "price": 0.07360098555854912,
+    "twap": 0.07810969558779465,
+    "dev_bps": -577.2,
     "action": "HOLD",
-    "edge_bps": 260.82,
+    "edge_bps": 259.75,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -328bp vs bar vol 0bp: mean reversion disarmed"
+     "adverse trend -335bp vs bar vol 0bp: mean reversion disarmed"
     ]
    },
    {
     "i": 35,
-    "price": 0.07313502266720914,
-    "twap": 0.07775606415454268,
-    "dev_bps": -594.3,
+    "price": 0.07315937964519782,
+    "twap": 0.07773706006079398,
+    "dev_bps": -588.9,
     "action": "HOLD",
-    "edge_bps": 267.43,
+    "edge_bps": 264.99,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -341bp vs bar vol 0bp: mean reversion disarmed"
+     "adverse trend -339bp vs bar vol 0bp: mean reversion disarmed"
     ]
    },
    {
     "i": 36,
-    "price": 0.07269621253120588,
-    "twap": 0.07738665861553369,
-    "dev_bps": -606.1,
+    "price": 0.07272042336732663,
+    "twap": 0.07736639481991738,
+    "dev_bps": -600.5,
     "action": "HOLD",
-    "edge_bps": 272.75,
+    "edge_bps": 270.23,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
     "equity": 1000.0,
     "reasons": [
-     "adverse trend -353bp vs bar vol 0bp: mean reversion disarmed"
+     "adverse trend -351bp vs bar vol 0bp: mean reversion disarmed"
     ]
    },
    {
     "i": 37,
-    "price": 0.07226003525601865,
-    "twap": 0.07699531278871262,
-    "dev_bps": -615.0,
+    "price": 0.07228410082712268,
+    "twap": 0.07697374932161703,
+    "dev_bps": -609.3,
     "action": "HOLD",
-    "edge_bps": 276.75,
+    "edge_bps": 274.16,
+    "hurdle_bps": 146.0,
+    "executed": false,
+    "blocked_by": "",
+    "equity": 1000.0,
+    "reasons": [
+     "adverse trend -363bp vs bar vol 0bp: mean reversion disarmed"
+    ]
+   },
+   {
+    "i": 38,
+    "price": 0.07185039622215994,
+    "twap": 0.07655919081905324,
+    "dev_bps": -615.1,
+    "action": "HOLD",
+    "edge_bps": 276.77,
     "hurdle_bps": 146.0,
     "executed": false,
     "blocked_by": "",
@@ -1276,24 +1400,9 @@
     ]
    },
    {
-    "i": 38,
-    "price": 0.07182647504448254,
-    "twap": 0.0765576812254088,
-    "dev_bps": -618.0,
-    "action": "HOLD",
-    "edge_bps": 278.1,
-    "hurdle_bps": 146.0,
-    "executed": false,
-    "blocked_by": "",
-    "equity": 1000.0,
-    "reasons": [
-     "adverse trend -382bp vs bar vol 0bp: mean reversion disarmed"
-    ]
-   },
-   {
     "i": 39,
-    "price": 0.07139551619421565,
-    "twap": 0.0760983715937568,
+    "price": 0.07141929384482698,
+    "twap": 0.07612371548912028,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1307,8 +1416,8 @@
    },
    {
     "i": 40,
-    "price": 0.07096714309705035,
-    "twap": 0.07564178136419426,
+    "price": 0.07099077808175802,
+    "twap": 0.07566697319618557,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1322,8 +1431,8 @@
    },
    {
     "i": 41,
-    "price": 0.07054134023846804,
-    "twap": 0.0751879306760091,
+    "price": 0.07056483341326747,
+    "twap": 0.07521297135700845,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1337,8 +1446,8 @@
    },
    {
     "i": 42,
-    "price": 0.07011809219703724,
-    "twap": 0.07473680309195305,
+    "price": 0.07014144441278787,
+    "twap": 0.07476169352886639,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1352,8 +1461,8 @@
    },
    {
     "i": 43,
-    "price": 0.06969738364385501,
-    "twap": 0.07428838227340132,
+    "price": 0.06972059574631115,
+    "twap": 0.0743131233676932,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1367,8 +1476,8 @@
    },
    {
     "i": 44,
-    "price": 0.06927919934199188,
-    "twap": 0.07384265197976092,
+    "price": 0.06930227217183328,
+    "twap": 0.07386724462748703,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1382,8 +1491,8 @@
    },
    {
     "i": 45,
-    "price": 0.06886352414593992,
-    "twap": 0.07339959606788235,
+    "price": 0.06888645853880228,
+    "twap": 0.07342404115972212,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1397,8 +1506,8 @@
    },
    {
     "i": 46,
-    "price": 0.06845034300106428,
-    "twap": 0.07295919849147506,
+    "price": 0.06847313978756947,
+    "twap": 0.07298349691276378,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1412,8 +1521,8 @@
    },
    {
     "i": 47,
-    "price": 0.0680396409430579,
-    "twap": 0.0725214433005262,
+    "price": 0.06806230094884405,
+    "twap": 0.0725455959312872,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1427,8 +1536,8 @@
    },
    {
     "i": 48,
-    "price": 0.06763140309739954,
-    "twap": 0.07208631464072304,
+    "price": 0.06765392714315098,
+    "twap": 0.07211032235569947,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1442,8 +1551,8 @@
    },
    {
     "i": 49,
-    "price": 0.06722561467881515,
-    "twap": 0.07165379675287871,
+    "price": 0.06724800358029208,
+    "twap": 0.07167766042156529,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1457,8 +1566,8 @@
    },
    {
     "i": 50,
-    "price": 0.06682226099074226,
-    "twap": 0.07122387397236143,
+    "price": 0.06684451555881032,
+    "twap": 0.07124759445903589,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1472,8 +1581,8 @@
    },
    {
     "i": 51,
-    "price": 0.06642132742479781,
-    "twap": 0.07079653072852726,
+    "price": 0.06644344846545747,
+    "twap": 0.07082010889228167,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1487,8 +1596,8 @@
    },
    {
     "i": 52,
-    "price": 0.06602279946024903,
-    "twap": 0.07037175154415609,
+    "price": 0.06604478777466471,
+    "twap": 0.07039518823892799,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1502,8 +1611,8 @@
    },
    {
     "i": 53,
-    "price": 0.06562666266348753,
-    "twap": 0.06994952103489116,
+    "price": 0.06564851904801673,
+    "twap": 0.06997281710949442,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1517,8 +1626,8 @@
    },
    {
     "i": 54,
-    "price": 0.0652329026875066,
-    "twap": 0.06952982390868181,
+    "price": 0.06525462793372863,
+    "twap": 0.06955298020683745,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1532,8 +1641,8 @@
    },
    {
     "i": 55,
-    "price": 0.06484150527138156,
-    "twap": 0.06911264496522972,
+    "price": 0.06486310016612626,
+    "twap": 0.06913566232559643,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1547,8 +1656,8 @@
    },
    {
     "i": 56,
-    "price": 0.06445245623975328,
-    "twap": 0.06869796909543834,
+    "price": 0.0644739215651295,
+    "twap": 0.06872084835164285,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1562,8 +1671,8 @@
    },
    {
     "i": 57,
-    "price": 0.06406574150231475,
-    "twap": 0.06828578128086571,
+    "price": 0.06408707803573872,
+    "twap": 0.068308523261533,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1577,8 +1686,8 @@
    },
    {
     "i": 58,
-    "price": 0.06368134705330086,
-    "twap": 0.06787606659318052,
+    "price": 0.06370255556752429,
+    "twap": 0.0678986721219638,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1592,8 +1701,8 @@
    },
    {
     "i": 59,
-    "price": 0.06329925897098106,
-    "twap": 0.06746881019362143,
+    "price": 0.06332034023411914,
+    "twap": 0.06749128008923201,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1607,8 +1716,8 @@
    },
    {
     "i": 60,
-    "price": 0.06291946341715517,
-    "twap": 0.0670639973324597,
+    "price": 0.06294041819271443,
+    "twap": 0.06708633240869663,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1622,8 +1731,8 @@
    },
    {
     "i": 61,
-    "price": 0.06254194663665223,
-    "twap": 0.06666161334846495,
+    "price": 0.06256277568355814,
+    "twap": 0.06668381441424445,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1637,8 +1746,8 @@
    },
    {
     "i": 62,
-    "price": 0.062166694956832316,
-    "twap": 0.06626164366837414,
+    "price": 0.062187399029456795,
+    "twap": 0.06628371152775897,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,
@@ -1652,8 +1761,8 @@
    },
    {
     "i": 63,
-    "price": 0.06179369478709132,
-    "twap": 0.06586407380636392,
+    "price": 0.06181427463528005,
+    "twap": 0.06588600925859242,
     "dev_bps": -618.0,
     "action": "HOLD",
     "edge_bps": 278.1,

@@ -1,90 +1,88 @@
 # 제출 준비 · 회기님 조치 목록
 
-## 0. 현재 상태 (2026-11-25)
+## 0. 현재 상태 (2026-11-25, 7단계 감사·업그레이드 후)
 
 | 항목 | 상태 |
 |---|---|
 | 트랙 | **Track 1 — AI Agent Trading** 확정 |
-| 컨트랙트 | `SentinelVault` + `SwapGuardLib` + ERC-8004 레지스트리·어댑터, **69/69** 테스트 통과(포크 실거래 5건 포함) |
-| 에이전트 | Python 코어 + elizaOS형 런타임 + x402 결제 + 가드, **125/125** 테스트 통과 |
-| 오픈소스 통합 | elizaOS·uniswap-ai·x402·ERC-8004 4건 코드 반영 (`docs/12_OSS_INTEGRATION.md`) |
-| 감사 | Slither **13건**(High 1 / Medium 1 / Low 9 / Info 2), 항목별 트리아지 `docs/15_SLITHER_TRIAGE.md` |
-| 메인넷 배포 | **미완** (지갑·HSK 불필요 → 회기님 결정 대기) |
-| DoraHacks 등록 | **미완** (회기님 계정 필요) |
-| GitHub 공개 저장소 | 공개 repo `2010180016y-netizen/sentinel-vault-hsk` (2026-11-25 push) |
-| 데모 영상 | 미제작 (90초 스크립트 확정, 아래) |
+| 컨트랙트 | `SentinelVault` + `SwapGuardLib` + ERC-8004 레지스트리·어댑터 + EIP-3009 목 토큰, **74/74** 테스트(포크 실거래 5건 포함) |
+| 에이전트 | Python 코어 + elizaOS형 런타임 + x402(paper/chain) + 가드 + 시나리오 랩 + LLM 계층, **173/173** |
+| 포크 end-to-end | **49 tx · 33 checks** (`evidence/e2e_fork.md`) — 배포→거래→청산→평판→x402 실정산→장부 대조 |
+| 오픈소스 통합 | elizaOS·uniswap-ai·x402·ERC-8004 코드 반영 (`docs/12_OSS_INTEGRATION.md`) |
+| 감사 | Slither **13건**(High 1 / Medium 1 / Low 9 / Info 2) + 목 토큰 3(테스트 전용), `docs/15_SLITHER_TRIAGE.md` |
+| CI | `ci/ci.yml` (contracts / agent / fork) |
+| 메인넷 배포 | **미완** — 가스 1.8885 HSK 필요(지출 금지 지시) |
+| DoraHacks 등록 | **미완** — 회기님 계정 필요 |
+| GitHub 공개 저장소 | `2010180016y-netizen/sentinel-vault-hsk` (2026-11-25 master push) |
+| 데모 영상 | 미제작 — 흐름·숫자 확정(`docs/50_DEMO.md`) |
 
 ---
 
 ## 1. 회기님이 결정해야 하는 것
 
 ### (1) 지갑 — 필수
-- 필요: EVM 지갑 주소 2~3개(소유자 1, 전략 서명 1, 리스크 서명 1).
-- 현재 상태: 볼트에 크립토 지갑이 없고, 브라우저 세션에도 지갑 로그인이 없습니다.
-- 선택지: ①회기님이 쓰시는 지갑 주소 사용(키는 회기님이 보관) ②데모 전용 신규 지갑 생성(제가 주소만 만들고 키는 파일로 전달).
-- 주의: **세 역할을 같은 키로 쓰면 컨트랙트가 `InvalidConfig`로 배포를 거부**합니다(이중 통제가 형식이 되지 않도록 한 장치).
+- 필요: EVM 지갑 3개(소유자/배포자, 전략 서명, 리스크 서명). 세 역할을 한 키로 쓰면 컨트랙트가
+  `InvalidConfig`로 배포를 거부한다(이중 통제가 형식이 되지 않도록 한 장치).
+- 현재: 신규 EVM 지갑 3개가 로컬 `.env.wallets.local`(600, git 제외)에 있다.
+  Owner/Deployer `0x7B3f005fF9AAF4eAae2CF4c7A3343B2384383a83`,
+  Strategy `0x7319aF430CED91CEB56279af86b973B0C67c1B02`, Risk `0xCB18eeaF90f75472da6637d490Bb668feDC29544`.
+- 선택지: ①이 지갑 사용 ②회기님이 쓰시는 지갑으로 교체(`gen_keys.py` 재실행 또는 `setSigners`).
 
 ### (2) HSK 가스 — 소액
-- 실측(재측정): 컨트랙트 18,675 bytes, 가스 3,802,309, 500.001 gwei → **1.901 HSK**(L1 데이터 수수료 0.0003 HSK 포함).
-- HSK 가격 $0.0808 → **약 $0.15**. (재점검으로 코드가 커져 이전 1.535 HSK에서 올라갔다.)
-- 다른 팀이 Q&A에 적은 "3~5 HSK"보다 적습니다. 회기님이 쓰시는 거래소에서 HSK 출금이 가능한지 확인이 필요합니다(HSK는 HashKey Exchange·OKX 등 상장).
-- 대안: 대회 측에 가스 지원 문의(이미 다른 팀이 질문, 답변 없음).
+- 실측: 3,777,090 gas × 500.001 gwei = **1.8885 HSK** (L1 데이터 수수료 ~0.0003 포함), HSK $0.0808 → **≈ $0.15**.
+- Owner 지갑에 **2.0 HSK**면 배포 + `setMarket/registerStrategy/unpause/deposit`까지 충분하다.
+- 대안: 대회 측 가스 지원 문의(Q&A에 질문만 있고 답변 0건).
 
 ### (3) DoraHacks 등록
-- 현재 로그인 안 된 상태. **등록과 제출이 2026-12-03 13:00 KST에 동시 마감**.
-- 등록 시 필요한 것: 팀/개인 이름, 연락 이메일, 트랙 선택(AI Agent Trading), (데모 참석 시) 참석 여부.
-- 계정 주체가 회기님이므로 제가 대신 누를 수 없습니다. 화면까지 준비해 드리고 클릭만 받는 방식이 가능합니다.
+- 등록과 제출이 **2026-12-03 13:00 KST 동시 마감**. 로그인 세션이 없어 대신 누를 수 없다.
+- 필요한 것: 팀/개인 이름, 연락 이메일, 트랙(AI Agent Trading), (데모 참석 시) 참석 여부.
 
 ### (4) 서울 현장 발표 (12/5)
-- 필수는 아니고 "우선 고려". 참석 가능하면 데모팀 선정 확률이 올라갑니다.
-- 온라인 전용 참가 시 사전 녹화 영상 허용 여부는 **주최 측 답변 없음**(Q&A에 질문만 있음).
+- 필수는 아니고 “우선 고려”. 참석 가능하면 데모팀 선정 확률이 올라간다.
+- 온라인 전용 참가 시 사전 녹화 허용 여부는 주최 측 답변 없음.
 
-### (5) GitHub 공개 저장소
-- 제출물 요건상 공개 저장소가 필요합니다. 현재 `competitions/hsk-chain-seoul-2026/`에 로컬 git 저장소를 만들어 커밋해 두었습니다(push 안 함).
-- 회기님 계정(`@2010180016y-netizen`)에 새 공개 저장소를 만들어 push해도 되는지 확인 필요.
-- `oss/` 폴더(외부 저장소 클론 약 300MB)는 `.gitignore`로 제외했습니다.
+### (5) 데모 영상
+- 90초. `docs/50_DEMO.md`의 3분 흐름을 압축하고, 숫자는 `evidence/e2e_fork.md` 기준.
+- 라이브 자금 시연 금지(포크 + 페이퍼로 충분). 합성 패널은 `SYNTHETIC` 라벨이 보이게.
 
 ---
 
-## 2. 제출물 체크리스트 (DoraHacks "Submit Build")
+## 2. 제출물 체크리스트 (DoraHacks “Submit Build”)
 
 | 항목 | 준비물 | 상태 |
 |---|---|---|
 | 프로젝트명 | Sentinel HSK — accountable agent on HSKSwap | ✅ |
-| 한 줄 소개 | "The agent decides. The chain enforces. And the agent's own claims are settled on-chain." | ✅ |
+| 한 줄 소개 | “The agent decides. The chain enforces. And the agent's own claims are settled on-chain.” | ✅ |
 | 트랙 | AI Agent Trading | ✅ |
-| 상세 설명 | `README.md` + `docs/30_ARCHITECTURE.md` + `docs/20_EXPERT_PANEL_S4.md`(재점검 기록) | ✅ |
-| GitHub 저장소 | 공개 repo 필요 | ⏳ 회기님 승인 |
-| 데모 영상 | 90초 스크립트 확정 | ⏳ 촬영 필요 |
+| 상세 설명 | `README.md` + `docs/30_ARCHITECTURE.md` + `docs/12_deep_audit_and_upgrade.md` | ✅ |
+| GitHub 저장소 | 공개 repo | ✅ push 완료 |
+| 데모 영상 | 90초 | ⏳ 촬영 |
 | 메인넷 컨트랙트 주소 | 배포 후 Blockscout 링크 | ⏳ 지갑·가스 |
 | 데모 접속 주소(선택) | `python -m agent.server` 로컬 대시보드 | ✅ |
-
-> 참고: DoraHacks 제출 폼의 정확한 필드는 로그인 후에만 보입니다. 로그인 세션이 준비되면 필드별로 채워 넣겠습니다.
+| 포크 실행 증거 | `evidence/e2e_fork.md` / `.json` | ✅ |
 
 ---
 
-## 3. 90초 데모 스크립트 (3차 회의 확정)
+## 3. 90초 데모 스크립트 (숫자 갱신)
 
 | 초 | 화면 | 말 |
 |---|---|---|
-| 0-10 | 터미널 `python scripts/backtest.py` 결과 상단 | "HSKSwap 수수료는 다리당 30bp, 왕복 실측 126bp입니다. 오늘 이 풀에서 관측된 최대 이탈은 130bp — 허들 146bp를 못 넘습니다. 대부분의 봇은 수수료를 내고 손실을 삽니다." |
-| 10-30 | Blockscout의 컨트랙트 + 스왑 tx | "메인넷에 배포된 볼트입니다. 포크 테스트에서 실제 스왑으로 풀을 108bp 밀어 이탈을 만들고, 볼트가 그 이탈을 샀습니다. 100 USDT → 1,247.39 WHSK, TWAP 공정가 1,238.11보다 74bp 유리 — 30bp 수수료를 내고도 남았습니다." |
-| 30-50 | 대시보드 `Edge discipline` 카드 + 대화 입력 | "다른 팀은 에이전트에게 한도를 줍니다. 우리는 한도에 더해 에이전트의 주장을 온체인에서 검증합니다 — 주장은 시장이 보여준 이탈을 넘을 수 없고, 실현과 같은 단위로 대조합니다. 그리고 이 대화창에서 '1회 한도 100', '리스크 낮춰'라고 말하면 에이전트 행동이 온체인 한도 안에서 바뀝니다. 한도를 넘는 요청은 거부하고 실제 숫자를 알려줍니다." |
-| 50-70 | 터미널 라이브 루프 (거부 로그 3줄) | "지금 라이브 루프는 거래하지 않습니다. 허들 146bp를 넘는 이탈이 없기 때문입니다. 거부도 결정으로 온체인에 남깁니다 — recordNoTrade가 nonce를 소비합니다." |
-| 70-90 | `forge test` 요약 + 불변식 표 | "에이전트 키가 뚫려도 자금은 못 나갑니다. 인출 불가, 리스크 서명 없이는 실행 불가. 128,000회 무작위 호출로 5개 불변식을 검증했습니다." |
-
-녹화 시 주의: 라이브 자금 시연 금지(페이퍼 + 포크 실증으로 충분). 합성 백테스트는 반드시 `SYNTHETIC` 라벨이 보이게.
+| 0-12 | `python3 scripts/backtest.py` 상단 | “HSKSwap 0.3% 풀, 왕복 실측 65.7bp입니다. 오늘 관측된 최대 이탈은 130bp — 허들 146bp를 못 넘습니다. 기록 바 40개에서 거래 0건, 거부 20건. 이 시장에서 테이커의 정답은 대부분 ‘거래하지 않는다’입니다.” |
+| 12-30 | 대시보드 Scenario lab: 덤프 프리셋 → 이탈 매수 전략 | “같은 게이트를 손으로 돌려봅니다. -400bp 덤프에서 기본 전략은 역추세로 거부하지만, 체인은 그 주문을 허용합니다. 별도로 사전등록한 이탈 매수 전략은 61 USDT를 주장 166bp로 진입합니다. 1회 400을 요청하면 체인이 `TRADE_TOO_LARGE`로 거부합니다.” |
+| 30-55 | `python3 scripts/fork_demo.py` 실행 중 | “메인넷 포크입니다. 실제 라우터로 풀을 381bp 밀었고, 기본 전략의 거부가 온체인 트랜잭션으로 남았습니다. 이탈 매수 전략이 50.91 USDT를 샀고, 풀을 되돌린 뒤 청산에서 600bp가 정산됐습니다. ERC-8004 어댑터가 볼트의 신뢰도 36,144를 그대로 평판으로 올렸습니다.” |
+| 55-72 | x402 카드 / `evidence/e2e_fork.md` | “프리미엄 리스크 피드는 x402로 0.001 USDT를 받습니다. 포크에서는 실제 `transferWithAuthorization` tx로 정산되고 nonce가 온체인에서 소진됩니다.” |
+| 72-90 | `forge test` 요약 + 불변식 표 | “에이전트 키가 뚫려도 자금은 못 나갑니다. 인출 불가, 리스크 서명 없이는 실행 불가. 128,000회 무작위 호출로 5개 불변식을 검증했고, 장부와 볼트는 4/4로 일치합니다.” |
 
 ---
 
 ## 4. 심사 방어선 매핑
 
-| 심사 관점(공개 문구) | 우리 대응 | 증거 위치 |
+| 심사 관점 | 우리 대응 | 증거 위치 |
 |---|---|---|
-| 완성도 | 컨트랙트·에이전트·대시보드·배포 스크립트·문서 일체 | 저장소 전체 |
-| 기술 성숙도 | EIP-712 이중서명, TWAP 자기검증, 사후 잔고 검증, fuzz+불변식+포크 테스트, Slither, **4개 표준 통합(런타임·가드·x402·ERC-8004)** | `test/`, `evidence/`, `docs/12_OSS_INTEGRATION.md` |
-| 혁신성 | 전략 사전등록 + 선언/실현 엣지 대조 + 노-트레이드 기록 | `SentinelVault.sol` 상단 주석, `stats()`, `edgeCredibilityBps()` |
-| HSK 생태계 사용 | HSKSwap 라우터·쿼터·팩토리·풀 오라클, 체인 177 | `docs/10_OSS_RESEARCH.md` §5 |
+| 완성도 | 컨트랙트·에이전트·대시보드·포크 데모·CI·문서 일체 | 저장소 전체, `ci.yml` |
+| 기술 성숙도 | EIP-712 이중서명, TWAP 자기검증, 사후 잔고 검증, fuzz+불변식+포크 테스트, Slither, 4개 표준 통합, **49 tx end-to-end** | `test/`, `evidence/`, `docs/12_*` |
+| 혁신성 | 전략 사전등록 + 선언/실현 엣지 대조 + 거부 기록 + **LLM 숫자 검증** | `SentinelVault.sol`, `agent/narrator.py` |
+| HSK 생태계 | HSKSwap 라우터·쿼터·팩토리·풀 오라클, 체인 177 | `docs/10_OSS_RESEARCH.md` §5 |
 | 현장 발표 | 12/5 서울 참석 시 우선 고려 | 회기님 결정 |
 
 ---
@@ -94,9 +92,11 @@
 ```bash
 cd competitions/hsk-chain-seoul-2026
 export PATH="$HOME/.foundry/bin:$PATH"
-forge test                                   # 69 tests (포크 포함, 네트워크 필요)
-python3 -m pytest tests/ -q                  # 125 tests (anvil 패리티 포함)
-python3 scripts/backtest.py                  # 실측 0건 / 합성 2건 / 하락추세 0건
-python3 scripts/run_paper.py --cycles 3      # 라이브 루프 (페이퍼)
-python3 -m agent.server --port 8765          # 대시보드
+forge test --no-match-path 'test/SentinelVault.fork.t.sol'   # 69
+forge test                                                   # 74 (포크 포함, 네트워크)
+python3 -m pytest tests/ -q                                  # 173
+python3 scripts/backtest.py                                  # 거래 0 / 거부 20 / 합성 패널
+python3 scripts/fork_demo.py                                 # 49 tx end-to-end (~2.5분)
+python3 -m agent.server --port 8765                          # 대시보드
+python3 scripts/deploy.py                                    # 배포 비용 추정(dry-run)
 ```

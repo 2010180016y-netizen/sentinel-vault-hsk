@@ -86,13 +86,19 @@ def test_ema_and_rsi_bounds():
 
 
 def test_round_trip_cost_counts_both_legs():
-    """A taker pays fee + impact twice. The earlier model averaged the impacts and understated the hurdle."""
+    """A taker pays on both legs, and each measured impact already contains the pool fee.
+
+    The previous model was `2*fee + impact_in + impact_out`, which counted the 30bp fee twice (the
+    quote is the real output, so the fee is inside the impact) and overstated the cost by 60bp. The
+    corrected model is `impact_in + impact_out`; `fee_bps` is kept for reporting only.
+    """
     f = build_features(
         _bars([1.0, 1.001, 1.0, 0.999] * 6),
         twap_dev_bps=-200, fee_bps=30, impact_bps_buy=33, impact_bps_sell=33,
         liquidity_quote=419_000, strategy=Strategy(),
     )
-    assert f.round_trip_cost_bps == pytest.approx(2 * 30 + 33 + 33)
+    assert f.round_trip_cost_bps == pytest.approx(33 + 33)
+    assert f.fee_bps == 30  # still reported, never added again
     d = decide(f, RiskPolicy(), Strategy(), has_position=False, position_quote=0)
     assert d.hurdle_bps == pytest.approx(max(RiskPolicy().min_edge_bps, f.round_trip_cost_bps + 20))
 

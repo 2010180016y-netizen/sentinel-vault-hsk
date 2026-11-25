@@ -127,7 +127,19 @@ def build_plugin(agent: Any) -> Plugin:
         if agent.last_decision is None or agent.last_observation is None:
             return ActionResult(False, error="아직 판단 기록이 없습니다")
         text = agent.explain(agent.last_decision, agent.last_observation)
-        return ActionResult(True, text=text, data={"decision": agent.last_decision.as_dict() if hasattr(agent.last_decision, "as_dict") else {}})
+        narration = agent.narrate_last()
+        if narration.get("source") == "llm":
+            text += "\n\n[LLM 서술 · 숫자는 위 사실에서만 인용됨] " + narration["text"]
+        elif narration.get("rejected"):
+            text += "\n\n[LLM 서술 폐기] " + narration.get("reason", "")
+        return ActionResult(
+            True,
+            text=text,
+            data={
+                "decision": agent.last_decision.as_dict() if hasattr(agent.last_decision, "as_dict") else {},
+                "narration": {k: narration.get(k) for k in ("source", "rejected", "reason")},
+            },
+        )
 
     def trade_once(runtime, message, state: State, params: dict) -> ActionResult:
         record = agent.step()

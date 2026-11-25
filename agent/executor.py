@@ -16,6 +16,7 @@ from __future__ import annotations
 import os
 import time
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 from eth_utils import keccak
 
@@ -24,6 +25,15 @@ from .intent import Intent, dual_sign, encode_execute_calldata
 from .ledger import Ledger
 from .market import DexClient, PoolState
 from .rpc import Rpc
+
+LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1", "0.0.0.0"}
+
+
+def hex_hash(value) -> str:
+    """A `0x`-prefixed transaction hash. HexBytes.hex() drops the prefix in this web3/eth-account pair,
+    and a hash without `0x` is not a hash anyone can open in an explorer."""
+    text = value.hex() if hasattr(value, "hex") else str(value)
+    return text if text.startswith("0x") else "0x" + text
 
 INTENT_EXECUTED_TOPIC = "0x" + keccak(
     text=(
@@ -118,10 +128,21 @@ class ChainExecutor:
         self._risk_key = os.environ.get("SENTINEL_RISK_KEY", "")
         if not self._strategy_key or not self._risk_key:
             raise RuntimeError("both SENTINEL_STRATEGY_KEY and SENTINEL_RISK_KEY must be set for live mode")
+        # One more interlock before money can move in the user's name: a non-loopback RPC needs an
+        # explicit, named opt-in. This is what caught a demo script that forgot to point HSK_RPC at its
+        # own anvil fork — the refusal happened at the node, but a funded key would have spent gas.
+        host = (urlparse(settings.chain.rpc_url).hostname or "").lower()
+        self.local_rpc = host in LOCAL_HOSTS
+        self.rpc_host = host
 
     # ---------------- internals ----------------
 
     def _send(self, fn, account) -> dict:
+        if not self.local_rpc and os.environ.get("SENTINEL_CONFIRM_MAINNET_TX") != "1":
+            raise RuntimeError(
+                f"refusing to broadcast to {self.rpc_host} without SENTINEL_CONFIRM_MAINNET_TX=1 "
+                "(the hackathon brief forbids mainnet gas spend; a local fork needs no flag)"
+            )
         w3 = self.rpc.w3
         tx = fn.build_transaction(
             {
@@ -136,8 +157,18 @@ class ChainExecutor:
         h = w3.eth.send_raw_transaction(signed.raw_transaction)
         receipt = w3.eth.wait_for_transaction_receipt(h, timeout=120)
         if receipt["status"] != 1:
-            raise RuntimeError(f"transaction reverted: {h.hex()}")
-        return {"tx": h.hex(), "status": receipt["status"], "gasUsed": receipt["gasUsed"], "logs": receipt["logs"]}
+            # A bare "reverted" hash is useless at 3am. Re-run the exact call one block earlier and
+            # surface the contract's own error (Executed before a revert has no reason to give).
+            reason = ""
+            try:
+                w3.eth.call(
+                    {"from": tx["from"], "to": tx.get("to"), "data": tx.get("data"), "value": tx.get("value", 0)},
+                    block_identifier=max(0, int(receipt["blockNumber"]) - 1),
+                )
+            except Exception as exc:  # noqa: BLE001 - the message is the point
+                reason = f" — {exc}"
+            raise RuntimeError(f"transaction reverted: {hex_hash(h)}{reason[:400]}")
+        return {"tx": hex_hash(h), "status": receipt["status"], "gasUsed": receipt["gasUsed"], "logs": receipt["logs"]}
 
     @staticmethod
     def decode_amount_out(logs) -> int:
@@ -173,7 +204,7 @@ class ChainExecutor:
         account = w3.eth.account.from_key(self._strategy_key)
         contract = self.rpc.contract(self.vault, self.ABI_EXECUTE)
         fn = contract.functions.executeIntent(
-            it.as_tuple(), bytes.fromhex(s_sig[2:]), bytes.fromhex(r_sig[2:])
+            it.as_tuple(), bytes.fromhex(s_sig.removeprefix("0x")), bytes.fromhex(r_sig.removeprefix("0x"))
         )
         sent = self._send(fn, account)
         self.ledger.nonce = it.nonce

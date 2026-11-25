@@ -1,5 +1,10 @@
 # 전문가 회의체 4차 — 전면 재점검(line-by-line) 및 고도화
 
+> **후속 정정(2026-11-25)**: 이 문서의 “왕복 126bp = 2×30 + 33 + 33”은 **수수료 이중계상**이었다.
+> 견적에는 이미 수수료가 포함되며, 임팩트도 TWAP이 아니라 spot 기준이어야 한다. 정정 후 실측은
+> **65.7bp**(33.0 + 32.7)이고 정책 하한 146bp는 비용 + 약 80bp 마진이다. 경위: `docs/12_deep_audit_and_upgrade.md` F3.
+> 이 문서는 당시의 판단 기록이므로 본문 수치는 그대로 두고 이 배너만 추가한다.
+
 대상: `src/SentinelVault.sol`(606→759줄), `src/libraries/TwapLib.sol`, Foundry 테스트 3종, Python 에이전트 11모듈,
 `scripts/` 5종, `web/`, Slither 출력, `README.md`·`docs/*`·`evidence/*`.
 방식: 1~3차와 동일하다. 5개 역할(P1 퀀트·MEV, P2 감사관, P3 A2A 설계자, P4 심사위원, P5 실자금 운영)의 판단 기준을

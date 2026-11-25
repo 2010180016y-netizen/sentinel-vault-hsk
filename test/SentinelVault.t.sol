@@ -703,6 +703,64 @@ contract SentinelVaultTest is Test {
         assertEq(cost, 0);
     }
 
+    /// @notice Tokens donated to the vault are not a position. Selling more than the book now fails
+    ///         with a named error *before* the swap, instead of panicking in `_settle` after it.
+    function test_Revert_WhenSellExceedsTheBook() public {
+        // a direct transfer: the balance grows, the position book does not
+        deal(address(whsk), address(vault), 1_000e18);
+        assertEq(IERC20(address(whsk)).balanceOf(address(vault)), 1_000e18);
+
+        uint256 fairSell = _fairOut(500e18, false);
+        router.setNextAmountOut(fairSell);
+        // `_expectRevert` signs first: `vm.expectRevert` applies to the next external call, and
+        // `hashIntent` (a staticcall) would otherwise consume it.
+        _expectRevert(SentinelVault.SellExceedsPosition.selector, _sellIntent(500e18, (fairSell * 99) / 100, 0, 1));
+    }
+
+    /// @notice A sell exactly equal to the book is still allowed (the boundary is not off by one).
+    function test_SellEqualToTheBookIsAllowed() public {
+        uint256 fair = _fairOut(100e6, true);
+        router.setNextAmountOut(fair);
+        _exec(_intent(100e6, fair, 100, 1));
+
+        vm.warp(block.timestamp + 120);
+        uint256 fairSell = _fairOut(fair, false);
+        router.setNextAmountOut(fairSell);
+        _exec(_sellIntent(uint128(fair), (fairSell * 99) / 100, 0, 2));
+        (uint256 qty,) = vault.positions(address(whsk));
+        assertEq(qty, 0);
+    }
+
+    /// @notice Operational views a judge reads before arming the vault.
+    function test_ConfigViewsAndGuards() public view {
+        assertEq(vault.assetCount(), 1, "one market registered");
+        assertEq(vault.avgExecutionEdgeBps(), 0, "no trades, no average: absence is not zero performance");
+        assertEq(vault.edgeCredibilityBps(), 0, "no claim, no credibility");
+        assertEq(vault.strategyRegisteredAt(STRATEGY) > 0, true);
+        assertEq(vault.paused(), false);
+    }
+
+    /// @notice Signer rotation cannot collapse the dual control the constructor protects.
+    function test_Revert_WhenSignerRotationCollapsesDualControl() public {
+        vm.startPrank(owner);
+        vm.expectRevert(SentinelVault.InvalidConfig.selector);
+        vault.setSigners(address(0xBEEF), address(0xBEEF));
+        vm.expectRevert(SentinelVault.InvalidConfig.selector);
+        vault.setSigners(address(0xBEEF), address(0));
+        vault.setSigners(address(0xBEEF), address(0xCAFE));
+        assertEq(vault.strategySigner(), address(0xBEEF));
+        assertEq(vault.riskSigner(), address(0xCAFE));
+        vm.stopPrank();
+    }
+
+    /// @notice A zero deposit is refused rather than emitting a meaningless event.
+    function test_Revert_WhenDepositIsZero() public {
+        vm.startPrank(owner);
+        vm.expectRevert(SentinelVault.ZeroAmount.selector);
+        vault.deposit(address(usdt), 0);
+        vm.stopPrank();
+    }
+
     /// @dev An oracle outage must not make the vault unauditable: the trading path fails closed, the
     ///      reporting view still answers and says the mark is partly cost-basis.
     function test_StatsSurvivesOracleOutage() public {

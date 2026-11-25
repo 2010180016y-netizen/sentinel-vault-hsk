@@ -23,6 +23,10 @@ from agent.market import Bar, PoolState  # noqa: E402
 from agent.signals import Decision, Features  # noqa: E402
 
 TICK = -301_487
+# 1 USDT buys ~12.38 WHSK at ~0.0808: the fake quotes in raw units, so the conversion is 12.38e12
+# (10**18 WHSK per whole token / 10**6 USDT per whole token). The previous factor of 12 ignored the
+# 18/6 decimal gap, which the spot-benchmarked impact check (correctly) refuses.
+WHSK_PER_USDT_SCALE = int(12.38e12)
 
 
 def _state(dev_ticks: int, window: int = 600) -> PoolState:
@@ -57,18 +61,18 @@ class FakeDex:
 
     def quote_buy(self, market, amount_quote: int):
         class Q:
-            amount_out = amount_quote * 12  # 1 USDT ~ 12 WHSK at this price
+            amount_out = amount_quote * WHSK_PER_USDT_SCALE
 
         return Q()
 
     def quote_sell(self, market, amount_asset: int):
         class Q:
-            amount_out = amount_asset // 12
+            amount_out = amount_asset // WHSK_PER_USDT_SCALE
 
         return Q()
 
     def fair_out(self, market, amount_in: int, buy: bool, twap_quote_per_base: float) -> int:
-        return amount_in * 12 if buy else amount_in // 12
+        return amount_in * WHSK_PER_USDT_SCALE if buy else amount_in // WHSK_PER_USDT_SCALE
 
 
 class FakeChain(ChainExecutor):
@@ -111,16 +115,18 @@ def _agent(executor, ledger=None) -> SentinelAgent:
 
 def test_live_buy_books_the_amount_the_chain_reported(monkeypatch):
     led = Ledger()
-    chain = FakeChain(led, amount_out=1_247_386_939_095_575_750_088)
+    # 120 USDT at 0.0808 minus the 30bp pool fee, at spot (the fake pool has no curve impact).
+    fill = 1_480_541_089_108_910_891_089
+    chain = FakeChain(led, amount_out=fill)
     agent = _agent(chain, led)
     monkeypatch.setattr(agent, "decide", lambda obs=None: _decision("BUY"))
 
     rec = agent.step()
 
     assert rec["executed"] is True
-    assert rec["amount_out"] == 1_247_386_939_095_575_750_088
-    assert led.trades[-1].amount_out == 1_247_386_939_095_575_750_088
-    assert rec["leg_edge_bps"] > 0, "bought below TWAP: the leg beat the oracle"
+    assert rec["amount_out"] == fill
+    assert led.trades[-1].amount_out == fill
+    assert rec["leg_edge_bps"] < 0, "a taker at spot pays the fee; the fork suite covers the positive case"
     assert led.quote_balance == pytest.approx(880.0)
     assert chain.intents[0].declared_edge_bps == int(round(rec["edge_bps"]))
     assert rec["tx"] == "0xfeed"

@@ -219,10 +219,16 @@ class _FakeEth:
     def __init__(self, chain_id: int):
         self.chain_id = chain_id
 
+    def wait_for_transaction_receipt(self, tx, timeout=120):
+        return {"status": 1, "transactionHash": tx}
+
 
 class _FakeWeb3:
     def __init__(self, chain_id: int):
         self.eth = _FakeEth(chain_id)
+
+    def wait_for_transaction_receipt(self, tx, timeout=120):
+        return {"status": 1, "transactionHash": tx}
 
 
 class _FakeToken:

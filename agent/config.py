@@ -106,6 +106,11 @@ class RiskPolicy:
 @dataclass(frozen=True)
 class Strategy:
     name: str = "sentinel/momentum-twap-reversion/v1"
+    # Which pre-registered strategy this is. `trend_filtered` refuses to buy into a strong adverse trend
+    # (mean reversion's classic death); `dislocation` buys a dislocation of any origin but keeps every
+    # other gate (cost hurdle, noise band, conviction) and a hard drawdown stop on-chain. Both are named,
+    # hashed and registered by the owner, so switching between them is visible on-chain, not silent.
+    mode: str = "trend_filtered"  # trend_filtered | dislocation
     # parameters are committed by hash; changing any of them changes the registered strategy id
     ema_fast: int = 5
     ema_slow: int = 20
@@ -119,6 +124,7 @@ class Strategy:
     def spec(self) -> dict:
         return {
             "name": self.name,
+            "mode": self.mode,
             "ema_fast": self.ema_fast,
             "ema_slow": self.ema_slow,
             "rsi_period": self.rsi_period,
@@ -150,8 +156,12 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
+        mode = os.environ.get("SENTINEL_STRATEGY_MODE", "trend_filtered").strip() or "trend_filtered"
+        if mode not in ("trend_filtered", "dislocation"):
+            mode = "trend_filtered"
         return cls(
             chain=Chain(rpc_url=os.environ.get("HSK_RPC", Chain.rpc_url)),
+            strategy=replace(Strategy(), mode=mode),
             live=os.environ.get("SENTINEL_LIVE", "0") == "1",
             vault=os.environ.get("SENTINEL_VAULT", ""),
             state_dir=os.environ.get("SENTINEL_STATE_DIR", "state"),

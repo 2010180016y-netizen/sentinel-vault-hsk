@@ -52,12 +52,14 @@
 
 ## 3. 전략 (정직한 알파 원천)
 
-**시장 구조 실측**: WHSK/USDT 0.3% 풀이 유일한 유동 시장(quote-side 깊이 약 $419k, 양쪽 합 $839k,
-재측정 2026-11-24). 관측된 바 최대 단일 이동 약 130bp. **왕복 비용은 126bp** — 수수료 30×2 + 진입 임팩트 33 +
-청산 임팩트 33이다. (이전 문서의 96bp는 두 임팩트를 평균낸 모델에서 나온 산술 오류였다: 테이커는 임팩트를
-두 번 낸다. 정정 경위는 `docs/20_EXPERT_PANEL_S4.md` 발견 11·20.) 여기에 20bp 마진을 더한 **허들 146bp**가
-정책의 온체인 하한이기도 하다. 관측 최대 이탈 130bp < 146bp이므로, 이 시장에서 테이커 전략의 정답은
-대부분의 시점에서 **"거래하지 않는다"**이다.
+**시장 구조 실측**: WHSK/USDT 0.3% 풀이 유일한 유동 시장(quote-side 깊이 약 $419~425k, 2026-11-24·25 재측정).
+관측된 바 최대 단일 이동 약 130bp. **왕복 비용은 65.7bp** — 진입 임팩트 33.0 + 청산 임팩트 32.7이며,
+0.3% 수수료는 **각 견적 안에 이미 포함**되어 있다. (이전 문서의 126bp는 수수료를 두 번 더한 값이었다.
+게다가 impact를 TWAP 대비로 재면 이탈 자체가 비용으로 둔갑해, -381bp 이탈에서도 "비용 461bp"로 거래를
+거부했다. 정정 경위: `docs/12_deep_audit_and_upgrade.md` F3.) 정책의 온체인 하한 **146bp**는 측정 비용
+65.7bp에 **약 80bp의 의도적 마진**을 더한 값이다(청산이 TWAP까지 완전히 되돌아오지 않을 경우를 대비).
+관측 최대 이탈 130bp < 146bp이므로, 이 시장에서 테이커 전략의 정답은 대부분의 시점에서
+**"거래하지 않는다"**이다.
 
 전략은 이 사실을 전제로 설계됐다.
 
@@ -72,7 +74,8 @@
 | 역추세 차단 | 추세가 −max(25bp, 1.5×변동성) 보다 강한 하락이면 매수 금지 |
 | 기대 엣지 | `0.45×\|dev\| + 0.35×\|trend\|` (추세가 이탈과 같은 방향일 때만) |
 | 허들 | `max(min_edge_bps, 왕복비용 + 20bp)` — **비용을 넘지 못하면 거래하지 않는다** |
-| 사이즈 | `max_trade_notional × target_frac × conviction` (conviction 0~1) |
+| 사이즈 | `max_trade_notional × target_frac × conviction` (conviction 0~1), 이후 **depth-fit**: 실제 크기로 진입·청산을 다시 견적해 비용이 엣지를 넘으면 크기를 줄이고, 5 USDT에서도 안 되면 HOLD |
+| 전략 모드 | `trend_filtered`(기본, 역추세 차단) · `dislocation`(같은 비용·노이즈·확신 게이트를 유지하되 역추세 차단 없이 이탈을 매수). 둘은 **다른 strategyHash**로 사람이 사전등록한다 |
 | 청산 | 보유 중이고 (dev ≥ 허들 또는 RSI 과매수) 이면 청산. 청산은 conviction·엣지 게이트를 요구하지 않음(위험 축소는 약한 근거로도 허용, `declaredEdgeBps = 0`) |
 | 주장 상한 | `claim = min(0.45×\|dev\| + 0.35×\|추세\|, \|dev\|)`. 온체인도 같은 상한을 강제한다(`EdgeClaimAboveDislocation`) |
 
@@ -105,7 +108,9 @@
 킬스위치가 켜졌는가, autonomous 모드에 필요한 4종(상한 2종·화이트리스트·드라이런)이 갖춰졌는가.
 
 같은 13개 술어가 `src/libraries/SwapGuardLib.sol`에도 같은 순서로 있고, `test/fixtures/guard_scenarios.json`
-19 시나리오를 양쪽 테스트가 읽는다. 거부는 `record["guards"]["code"]`로 원장에 남고, 라이브에서는
+19 시나리오를 양쪽 테스트가 읽는다. 가드는 **실제로 낼 주문의 재견적**으로 판정하고, 가격 임팩트는
+TWAP이 아니라 **현재 spot** 기준으로 잰다. TWAP 기준이면 덤프 중의 청산이 "10,000bp 임팩트"로 막혀,
+위험을 줄이는 거래를 비용 가드가 차단하는 역설이 된다(2026-11-25 수정). 거부는 `record["guards"]["code"]`로 원장에 남고, 라이브에서는
 `recordNoTrade(reason=GUARD_*)`로 온체인에도 남는다. 즉 **가드의 거부도 증거**다.
 
 ### 3.4 런타임 (elizaOS 컴포넌트) — 대화가 곧 파이프라인
@@ -142,6 +147,34 @@ payTo, **1회용 nonce**). `agent/premium.py`가 `/api/premium/edge`를 402로 �
 않는다. 실볼트에 매수→매도를 실행한 뒤 어댑터가 올린 신뢰도가 `vault.edgeCredibilityBps()`와 같은지
 `test/SentinelVault.t.sol::test_ERC8004AttestationUsesTheRealVaultRecord`가 확인한다.
 
+### 3.7 LLM — 서술은 하되 숫자를 만들지 않는다
+
+`agent/narrator.py`. Track 1이 AI Agent 트랙이므로 언어모델을 넣되, 이 프로젝트의 전제(주장은 검증
+가능해야 한다)를 모델에도 그대로 적용한다.
+
+| 규칙 | 구현 | 테스트 |
+|---|---|---|
+| 결정은 LLM이 하지 않는다 | `signals.decide`가 모든 숫자를 만들고, LLM은 사실(facts)만 받아 문장을 쓴다 | `test_narration_never_changes_the_decision` |
+| 사실에 없는 숫자는 폐기 | 응답의 모든 수 토큰이 facts에 있어야 통과, 아니면 결정론적 문장으로 대체하고 `rejected=true`로 표시 | `test_invented_numbers_are_caught`, `test_a_liar_is_replaced...` |
+| LLM의 매매 제안도 심사 | `parse_proposal` → `evaluate_proposal`이 정책 미러·가드로 판정 | 500 USDT → `TRADE_TOO_LARGE`, 신호 없음 → `EDGE_BELOW_HURDLE`, flat SELL → `NOTHING_TO_SELL` |
+| 키가 없어도 동작 | `SENTINEL_LLM_URL` 미설정 시 `NullNarrator` → 결정론적 문장 | `test_no_narrator_configured_is_not_a_failure` |
+
+전송은 OpenAI 호환(`POST {base}/chat/completions`)이라 OpenAI·vLLM·Ollama·LM Studio 모두 같은 코드로
+붙는다. 모델이 느리거나 죽어도 대시보드는 결정론적 문장으로 답한다(재시도 없음).
+
+### 3.8 시나리오 랩 — 같은 게이트를 손으로 만진다
+
+`agent/lab.py`. 하나의 가상 순간(이탈·크기·낙폭·킬스위치·보유·전략 모드)을 **실제** `signals.decide`,
+`policy.evaluate`, `guards.preflight`에 통과시켜 세 가지를 분리해 보여준다.
+
+1. **전략의 결정** — 신호 엔진이 사려 했는가, 거부했는가(노이즈·역추세·비용).
+2. **전략이 낼 주문** — 그 결정의 실제 숫자로 정책·가드를 통과하는가.
+3. **요청한 규모라면** — 슬라이더(또는 대화)가 요청한 크기를 체인이 허용하는가.
+
+`policy.evaluate()`는 계약과 같은 순서로 게이트를 반환하고 **첫 실패에서 멈춘다**(EVM이 멈추는 곳과
+같다). 청산은 `EDGE_BELOW_HURDLE/DAILY_LIMIT/COOLDOWN`이 `applies=false`로 표시되어, 예외도 결정임을
+보여준다. 대시보드의 게이트 표와 에이전트의 판정이 **같은 함수**를 읽으므로 화면이 규칙보다 예뻐질 수 없다.
+
 ---
 
 ## 4. 컨트랙트 사양 (`src/SentinelVault.sol`)
@@ -174,6 +207,7 @@ Intent(address tokenIn,address tokenOut,uint24 fee,uint128 amountIn,uint128 minA
 5. `declaredEdgeBps >= minEdgeBps`
 6. 거래 leg 중 하나는 반드시 `quoteToken` (USDT) — 노셔널·평가를 쿼트 자산으로 일관되게 계산하기 위한 제약
 7. 마켓 활성 + `fee` 일치 + `factory.getPool(...) == market.pool`
+7b. 매도면 `positions[asset].qty >= amountIn` (`SellExceedsPosition`) — 직송된 기부 토큰은 포지션이 아니다
 8. 잔고 충분
 9. **TWAP 산출**(`observe(window)`) → `fairOut` 계산. `|spot−twap| ≤ maxSpotTwapDeviationBps` (1 tick ≈ 1bp)
 10. `minAmountOut ∈ [fairOut×(1−maxSlippage), fairOut]`
@@ -220,12 +254,16 @@ Intent(address tokenIn,address tokenOut,uint24 fee,uint128 amountIn,uint128 minA
 | 결제 재전송 | x402 nonce 1회용, 검증 실패는 nonce 미소모 | `tests/test_x402.py` |
 | 실수로 메인넷 가스 지출 | `ChainFacilitator`가 chain 177에서 예외 | `test_chain_settlement_refuses_hsk_mainnet` |
 | 에이전트가 자기 평판을 조작 | 어댑터는 볼트 기록만 읽고, 소유자는 자기 에이전트 평가 불가 | `test/ERC8004.t.sol` |
+| LLM이 숫자를 만들어 수익을 주장 | 서술의 모든 수를 facts와 대조, 불일치 시 폐기 | `tests/test_narrator.py` |
+| LLM이 정책 밖 주문을 제안 | 제안을 `policy.check`·`preflight`로 판정 | `test_a_proposal_above_the_cap_is_refused_by_the_chain` |
+| 기부 토큰을 포지션으로 착각해 매도 | `SellExceedsPosition`을 스왑 전에 검사 | `test_Revert_WhenSellExceedsTheBook` |
+| 설정 실수로 메인넷 가스 지출 | 비-loopback RPC는 `SENTINEL_CONFIRM_MAINNET_TX=1` 없이 브로드캐스트 거부 | 포크 데모(플래그 없이 통과), 코드 인터록 |
 
 ---
 
 ## 6. 알려진 한계 (정직하게)
 
-1. **수익성 실증 없음.** 2026-11-24 실측 시장에서는 왕복 비용(126bp, 허들 146bp)이 관측 이탈(≤130bp)을 덮는다.
+1. **수익성 실증 없음.** 2026-11-25 실측 시장에서는 왕복 비용(65.7bp)이 허들 146bp보다 작지만, 관측 이탈(≤130bp)이 허들을 넘지 못한다.
    실제 기록 바 백테스트에서 매매 0건 — 이것이 **정직한 결과**이며, 리포트에 그대로 적었다.
    합성 시나리오(라벨 명시)에서만 매매가 발생해 회계·실행 기계를 증명한다.
 2. **단일 마켓·단일 leg.** USDT 대비 직접 풀이 있는 자산만 거래한다(2-hop 라우팅 없음).
@@ -252,6 +290,10 @@ test/SentinelVault.fork.t.sol  HSK 메인넷 포크 실거래 5건 (실스왑→
 agent/                         AI 에이전트 코어 (Python, 의존성 web3/eth-account만)
 agent/runtime/ + agent/plugins/  elizaOS형 런타임(Action/Provider/Evaluator) + sentinel-hsk 플러그인
 agent/guards.py                Uniswap 스킬 가드 13종 (SwapGuardLib.sol과 공유 표로 파리티)
+agent/lab.py                   시나리오 랩 — 같은 게이트로 가상 주문 판정(대시보드 /api/simulate)
+agent/narrator.py              LLM 서술·제안 계층 — 숫자 검증, 제안은 정책이 거부
+src/mocks/MockEIP3009.sol      x402 chain 정산 실증용 EIP-3009 테스트 토큰
+scripts/fork_demo.py           HSK 메인넷 포크 end-to-end (49 tx) — evidence/e2e_fork.md
 agent/x402/ + agent/premium.py  x402 v2 검증·정산(paper)·유료 엔드포인트
 agent/registry8004.py          ERC-8004 등록 파일 + 읽기 전용 레지스트리 클라이언트
 src/registries/ + Sentinel8004Adapter.sol  ERC-8004 3종 레지스트리 + 볼트 기록 기반 평판/검증

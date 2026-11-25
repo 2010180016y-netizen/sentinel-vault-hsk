@@ -6,54 +6,84 @@
 <title>Sentinel HSK — accountable trading agent</title>
 <style>
   :root{
-    --bg:#0b0d10; --panel:#12161b; --line:#1f2630; --text:#e6edf3; --dim:#8b98a5;
-    --up:#38d39f; --down:#ff6b6b; --accent:#5aa9ff; --warn:#ffc857;
+    --bg:#0b0d10; --panel:#12161b; --panel2:#0f1419; --line:#1f2630; --text:#e6edf3; --dim:#8b98a5;
+    --up:#38d39f; --down:#ff6b6b; --accent:#5aa9ff; --warn:#ffc857; --violet:#b392ff;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
-  header{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,13,16,.92);backdrop-filter:blur(8px);z-index:5}
+  header{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,13,16,.94);backdrop-filter:blur(8px);z-index:5}
   header h1{font-size:15px;margin:0;font-weight:650;letter-spacing:.2px}
-  .badge{font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
-  .badge.live{color:var(--up);border-color:#1d3b31}
+  .tag{font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+  .tag.live{color:var(--up);border-color:#1d3b31}
+  .tag.chain{color:var(--violet);border-color:#2f2748}
   .hash{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--dim);margin-left:auto}
-  main{padding:16px 20px 40px;display:grid;gap:14px;grid-template-columns:repeat(12,1fr);max-width:1240px;margin:0 auto}
+  main{padding:16px 20px 48px;display:grid;gap:14px;grid-template-columns:repeat(12,1fr);max-width:1320px;margin:0 auto}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;grid-column:span 4;min-width:0}
   .card.wide{grid-column:span 8}
   .card.full{grid-column:1/-1}
-  .card h2{font-size:12px;margin:0 0 10px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+  .card h2{font-size:11px;margin:0 0 10px;color:var(--dim);font-weight:650;text-transform:uppercase;letter-spacing:.09em;display:flex;justify-content:space-between;align-items:center;gap:8px}
   .big{font-size:26px;font-weight:650;letter-spacing:-.5px}
-  .row{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed rgba(255,255,255,.04)}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed rgba(255,255,255,.05)}
   .row:last-child{border-bottom:0}
   .k{color:var(--dim)}
-  .v{font-variant-numeric:tabular-nums}
-  .up{color:var(--up)} .down{color:var(--down)} .warn{color:var(--warn)} .accent{color:var(--accent)}
-  canvas{width:100%;height:180px;display:block}
-  .chat{display:flex;gap:8px;margin-top:8px}
-  .chat input{flex:1;background:#0d1117;border:1px solid var(--line);color:var(--text);border-radius:9px;padding:10px 12px;font-size:13px}
-  .chat button,.btn{background:#1a2430;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px 14px;font-size:13px;cursor:pointer}
-  .chat button:hover,.btn:hover{border-color:var(--accent)}
-  .log{max-height:230px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#c3ced9}
-  .log div{padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+  .v{font-variant-numeric:tabular-nums;text-align:right}
+  .up{color:var(--up)} .down{color:var(--down)} .warn{color:var(--warn)} .accent{color:var(--accent)} .violet{color:var(--violet)}
+  canvas{width:100%;height:170px;display:block}
+  .chat{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .chat input{flex:1;min-width:180px;background:#0d1117;border:1px solid var(--line);color:var(--text);border-radius:9px;padding:10px 12px;font-size:13px}
+  button{background:#1a2430;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:9px 13px;font-size:13px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:#17324d;border-color:#25537d}
+  button.small{padding:5px 9px;font-size:12px}
+  .log{max-height:250px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#c3ced9}
+  .log div{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);white-space:pre-wrap}
   .log .t{color:var(--dim);margin-right:8px}
   .muted{color:var(--dim);font-size:12px}
-  @media (max-width:900px){.card,.card.wide{grid-column:1/-1}}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:top}
+  th{color:var(--dim);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+  td.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .pill{display:inline-block;min-width:34px;text-align:center;border-radius:6px;padding:1px 6px;font-size:11px;font-weight:650}
+  .pill.ok{background:#12352a;color:var(--up)}
+  .pill.no{background:#3a1a1c;color:var(--down)}
+  .pill.na{background:#1b2027;color:var(--dim)}
+  .labs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .slider{display:grid;grid-template-columns:96px 1fr 74px;gap:8px;align-items:center;padding:3px 0}
+  .slider input[type=range]{width:100%}
+  .slider .val{text-align:right;font-variant-numeric:tabular-nums;color:var(--text)}
+  .slider label{color:var(--dim);font-size:12px}
+  .presets{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+  .verdict{border-radius:9px;padding:10px 12px;margin-top:8px;font-size:13px;border:1px solid var(--line);background:var(--panel2)}
+  .verdict.yes{border-color:#1d3b31;background:#0f1d18}
+  .verdict.no{border-color:#3b1d1d;background:#1d1212}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12.5px}
+  .kv .k{white-space:nowrap}
+  .tabs{display:flex;gap:6px;margin-bottom:8px}
+  .tabs button{flex:0 0 auto}
+  .tabs button.active{border-color:var(--accent);color:var(--accent)}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:#b8c6d4}
+  @media (max-width:1000px){.card,.card.wide{grid-column:1/-1}.labs{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <header>
   <h1>Sentinel HSK</h1>
-  <span class="badge" id="mode">paper</span>
-  <span class="badge" id="market">WHSK/USDT</span>
+  <span class="tag" id="mode">paper</span>
+  <span class="tag" id="market">WHSK/USDT</span>
+  <span class="tag" id="llm">LLM: off</span>
+  <span class="tag" id="vaulttag">vault: none</span>
   <span class="hash" id="hash">strategy …</span>
 </header>
 
 <main>
+  <!-- market / position / edge -->
   <section class="card">
-    <h2>Markets</h2>
+    <h2>Markets <span class="muted" id="obsage"></span></h2>
     <div class="big" id="price">—</div>
     <div class="muted" id="twapdev">—</div>
-    <div class="row"><span class="k">pool depth</span><span class="v" id="depth">—</span></div>
+    <div class="row"><span class="k">pool depth (quote)</span><span class="v" id="depth">—</span></div>
     <div class="row"><span class="k">TWAP window</span><span class="v" id="window">—</span></div>
+    <div class="row"><span class="k">round-trip cost</span><span class="v" id="cost">—</span></div>
   </section>
 
   <section class="card">
@@ -62,22 +92,33 @@
     <div class="row"><span class="k">qty</span><span class="v" id="qty">—</span></div>
     <div class="row"><span class="k">avg price</span><span class="v" id="avg">—</span></div>
     <div class="row"><span class="k">equity</span><span class="v" id="equity">—</span></div>
+    <div class="row"><span class="k">max drawdown</span><span class="v" id="dd">—</span></div>
   </section>
 
   <section class="card">
-    <h2>Edge discipline</h2>
-    <div class="row"><span class="k">declared (sum, entries)</span><span class="v" id="declared">—</span></div>
-    <div class="row"><span class="k">realised (sum, exits)</span><span class="v" id="realised">—</span></div>
+    <h2>Edge discipline <button class="small" onclick="narrate()">LLM 설명</button></h2>
+    <div class="row"><span class="k">declared (entries)</span><span class="v" id="declared">—</span></div>
+    <div class="row"><span class="k">realised (exits)</span><span class="v" id="realised">—</span></div>
     <div class="row"><span class="k">credibility</span><span class="v" id="cred">—</span></div>
     <div class="row"><span class="k">avg execution / leg</span><span class="v" id="exec">—</span></div>
     <div class="row"><span class="k">fees paid</span><span class="v" id="fees">—</span></div>
   </section>
 
+  <!-- decision trace -->
   <section class="card wide">
-    <h2>Equity (paper)</h2>
+    <h2>Decision trace <span class="muted" id="tracereason"></span></h2>
+    <div class="verdict" id="traceverdict">아직 판단 기록이 없습니다. <b>1회 판단</b>을 누르거나 질문을 보내세요.</div>
+    <table id="gates"><thead><tr><th>gate</th><th>rule</th><th class="num">limit</th><th class="num">actual</th><th>result</th></tr></thead><tbody></tbody></table>
+    <div class="muted" id="tracenote" style="margin-top:8px"></div>
+  </section>
+
+  <!-- equity -->
+  <section class="card wide">
+    <h2>Equity <span class="muted" id="eqnote"></span></h2>
     <canvas id="curve"></canvas>
   </section>
 
+  <!-- policy + guards -->
   <section class="card">
     <h2>Risk policy (on-chain)</h2>
     <div class="row"><span class="k">per trade</span><span class="v" id="p1">—</span></div>
@@ -85,6 +126,7 @@
     <div class="row"><span class="k">max drawdown</span><span class="v" id="p3">—</span></div>
     <div class="row"><span class="k">slippage vs TWAP</span><span class="v" id="p4">—</span></div>
     <div class="row"><span class="k">edge hurdle</span><span class="v" id="p5">—</span></div>
+    <div class="row"><span class="k">spot cap</span><span class="v" id="p6">—</span></div>
   </section>
 
   <section class="card">
@@ -93,15 +135,65 @@
     <div class="row"><span class="k">kill switch</span><span class="v" id="gkill">—</span></div>
     <div class="row"><span class="k">per run / period</span><span class="v" id="gcaps">—</span></div>
     <div class="row"><span class="k">used this period</span><span class="v" id="gspent">—</span></div>
-    <div class="row"><span class="k">impact cap · depth floor</span><span class="v" id="glimits">—</span></div>
+    <div class="row"><span class="k">impact · depth floor</span><span class="v" id="glimits">—</span></div>
   </section>
 
-  <section class="card wide">
-    <h2>Ask the agent</h2>
+  <section class="card">
+    <h2>On-chain reconciliation</h2>
+    <div class="kv" id="reconcile"><span class="k muted">SENTINEL_VAULT가 설정되면 장부를 온체인과 대조합니다.</span></div>
+  </section>
+
+  <!-- scenario lab -->
+  <section class="card full">
+    <h2>Scenario lab — 같은 게이트, 다른 숫자 <span class="muted">전략 · 정책 · 가드를 그대로 돌립니다 (체인 쓰기 없음)</span></h2>
+    <div class="presets" id="presets"></div>
+    <div class="labs">
+      <div>
+        <div class="slider"><label>TWAP 이탈</label><input type="range" id="sdev" min="-600" max="600" step="5" value="0"><span class="val" id="vdev">0 bp</span></div>
+        <div class="slider"><label>주문 규모</label><input type="range" id="ssize" min="10" max="400" step="5" value="120"><span class="val" id="vsize">120 USDT</span></div>
+        <div class="slider"><label>평가액</label><input type="range" id="sequity" min="600" max="1200" step="10" value="1000"><span class="val" id="vequity">1000</span></div>
+        <div class="slider"><label>보유 가치</label><input type="range" id="spos" min="0" max="400" step="10" value="0"><span class="val" id="vpos">0 USDT</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <label class="muted"><input type="checkbox" id="skill"> 킬 스위치</label>
+          <label class="muted"><input type="checkbox" id="staker"> 이탈 매수 전략</label>
+          <button class="small" onclick="simulate()">이 시나리오 판정</button>
+        </div>
+        <div class="verdict" id="simverdict">슬라이더를 움직이고 <b>판정</b>을 누르세요.</div>
+        <div class="muted" id="simexplain" style="margin-top:6px"></div>
+      </div>
+      <div>
+        <div class="tabs">
+          <button class="small active" id="tab-order" onclick="showSim('order')">전략이 낼 주문</button>
+          <button class="small" id="tab-requested" onclick="showSim('requested')">요청한 규모라면</button>
+        </div>
+        <table id="simgates"><thead><tr><th>gate</th><th class="num">limit</th><th class="num">actual</th><th>result</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- x402 + erc8004 -->
+  <section class="card">
+    <h2>x402 payment <span class="tag" id="x402mode">—</span></h2>
+    <div class="kv" id="x402info"><span class="k muted">payee 미설정</span></div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="primary" onclick="payDemo()">0.001 USDT로 프리미엄 데이터 구매</button>
+    </div>
+    <div class="muted" id="x402result" style="margin-top:8px"></div>
+  </section>
+
+  <section class="card">
+    <h2>ERC-8004 identity</h2>
+    <div class="kv" id="erc8004"><span class="k muted">미등록 (SENTINEL_8004_* 미설정)</span></div>
+  </section>
+
+  <!-- chat -->
+  <section class="card full">
+    <h2>Ask the agent <span class="muted">대화로 바뀌는 것은 에이전트 행동뿐 · 온체인 한도는 소유자 키의 영역</span></h2>
     <div class="chat">
       <input id="q" placeholder="상태 / 손익 / 리스크 / 왜 / 온체인 · 또는 '1회 한도 100', 'WETH로 바꿔', '리스크 낮춰'" />
-      <button onclick="ask()">물어보기</button>
+      <button class="primary" onclick="ask()">물어보기</button>
       <button onclick="step()">1회 판단</button>
+      <button onclick="refresh()">새로고침</button>
     </div>
     <div class="log" id="log"></div>
   </section>
@@ -109,13 +201,32 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
-const fmt = (x, d = 2) => (x === null || x === undefined || Number.isNaN(x)) ? "—" : Number(x).toLocaleString(undefined, {maximumFractionDigits: d, minimumFractionDigits: d});
+const fmt = (x, d = 2) => (x === null || x === undefined || Number.isNaN(x)) ? "—"
+  : Number(x).toLocaleString(undefined, {maximumFractionDigits: d, minimumFractionDigits: d});
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let SIM = null, SIMTAB = "order";
+
+function pill(ok, applies = true){
+  if (applies === false) return '<span class="pill na">n/a</span>';
+  return ok ? '<span class="pill ok">통과</span>' : '<span class="pill no">거부</span>';
+}
+
+function gatesTable(tbody, gates){
+  tbody.innerHTML = "";
+  (gates || []).forEach(g => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td><code>${esc(g.code)}</code></td><td class="muted">${esc(g.rule || g.detail || "")}</td>
+      <td class="num">${esc(g.limit || "—")}</td><td class="num">${esc(g.actual || "—")}</td><td>${pill(g.ok, g.applies)}</td>`;
+    tbody.appendChild(tr);
+  });
+  if (!(gates || []).length) tbody.innerHTML = '<tr><td colspan="5" class="muted">게이트 기록 없음</td></tr>';
+}
 
 function drawCurve(points) {
   const c = $("curve"), dpr = window.devicePixelRatio || 1;
-  const w = c.clientWidth, h = c.clientHeight;
+  const w = c.clientWidth || 600, h = c.clientHeight || 170;
   c.width = w * dpr; c.height = h * dpr;
-  const ctx = c.getContext("2d"); ctx.scale(dpr, dpr);
+  const ctx = c.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
   if (!points || points.length < 2) {
     ctx.fillStyle = "#8b98a5"; ctx.font = "12px sans-serif"; ctx.fillText("no cycles recorded yet", 8, 20); return;
@@ -124,12 +235,12 @@ function drawCurve(points) {
   const min = Math.min(...ys), max = Math.max(...ys), pad = (max - min) * 0.15 || 0.001;
   const y = (v) => h - 12 - ((v - min + pad) / (max - min + 2 * pad)) * (h - 24);
   const x = (i) => 8 + (i / (points.length - 1)) * (w - 16);
-  ctx.strokeStyle = "rgba(90,169,255,.18)"; ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(90,169,255,.16)"; ctx.lineWidth = 1;
   for (let i = 0; i <= 3; i++) { const yy = 12 + i * (h - 24) / 3; ctx.beginPath(); ctx.moveTo(8, yy); ctx.lineTo(w - 8, yy); ctx.stroke(); }
   ctx.beginPath(); ctx.moveTo(x(0), y(points[0][1]));
   points.forEach((p, i) => ctx.lineTo(x(i), y(p[1])));
   const grad = ctx.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0, "rgba(56,211,159,.35)"); grad.addColorStop(1, "rgba(56,211,159,0)");
+  grad.addColorStop(0, "rgba(56,211,159,.30)"); grad.addColorStop(1, "rgba(56,211,159,0)");
   ctx.lineTo(x(points.length - 1), h); ctx.lineTo(x(0), h); ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
   ctx.beginPath(); ctx.moveTo(x(0), y(points[0][1]));
   points.forEach((p, i) => ctx.lineTo(x(i), y(p[1])));
@@ -137,75 +248,223 @@ function drawCurve(points) {
 }
 
 async function refresh() {
-  const r = await fetch("/api/state"); const s = await r.json();
-  $("mode").textContent = s.mode; $("mode").className = "badge " + (s.mode === "live" ? "live" : "");
-  $("market").textContent = s.market.symbol;
-  $("hash").textContent = "strategy " + (s.strategy_hash || "").slice(0, 12) + "…";
-  $("price").textContent = fmt(s.market.price, 6) + " USDT";
-  const dev = s.market.twap_dev_bps;
-  $("twapdev").innerHTML = `TWAP 대비 <span class="${dev >= 0 ? "up" : "down"}">${dev > 0 ? "+" : ""}${fmt(dev, 0)}bp</span>`;
-  $("depth").textContent = fmt(s.market.depth_quote, 0) + " USDT";
-  $("window").textContent = s.policy.twap_window + "s";
-  $("posvalue").textContent = fmt(s.position.value_quote, 2) + " USDT";
-  $("qty").textContent = fmt(s.position.qty_whole !== undefined ? s.position.qty_whole : (s.position.qty / Math.pow(10, (s.market && s.market.decimals) || 18)), 4);
-  $("avg").textContent = fmt(s.position.avg_price, 6);
-  $("equity").textContent = fmt(s.metrics.equity, 2) + " USDT";
-  $("declared").textContent = fmt(s.metrics.declared_edge_sum_bps, 0) + "bp";
-  $("realised").textContent = fmt(s.metrics.realised_edge_sum_bps, 0) + "bp";
-  $("cred").textContent = fmt(s.metrics.edge_credibility_bps, 0) + "bp";
-  $("exec").textContent = fmt(s.metrics.avg_execution_edge_bps, 1) + "bp";
-  $("fees").textContent = fmt(s.metrics.fees_paid_quote, 4) + " USDT";
-  $("p1").textContent = fmt(s.policy.max_trade_notional, 0) + " USDT"
-    + (s.controls ? " (에이전트 " + fmt(s.controls.size_quote, 0) + ")" : "");
-  $("p2").textContent = fmt(s.policy.max_daily_notional, 0) + " USDT";
-  $("p3").textContent = s.policy.max_drawdown_bps + "bp";
-  $("p4").textContent = s.policy.max_slippage_bps + "bp";
-  $("p5").textContent = s.policy.min_edge_bps + "bp";
-  if (s.guards) {
-    $("gmode").textContent = s.guards.mode;
-    $("gkill").textContent = s.guards.kill_switch ? "ON" : "off";
-    $("gcaps").textContent = fmt(s.guards.per_run_cap_quote, 0) + " / " + fmt(s.guards.per_period_cap_quote, 0) + " USDT";
-    $("gspent").textContent = fmt(s.guards.period_spent_quote, 2) + " USDT (" + s.guards.period + ")";
-    $("glimits").textContent = s.guards.max_price_impact_bps + "bp · $" + fmt(s.guards.min_quote_depth_usd, 0);
+  try {
+    const s = await (await fetch("/api/state")).json();
+    $("mode").textContent = s.mode; $("mode").className = "tag " + (s.mode === "live" ? "live" : "");
+    $("market").textContent = s.market.symbol;
+    $("hash").textContent = "strategy " + (s.strategy_hash || "").slice(0, 12) + "…";
+    $("llm").textContent = "LLM: " + (s.llm && s.llm.configured ? s.llm.narrator : "off");
+    $("price").textContent = fmt(s.market.price, 6) + " USDT";
+    const dev = s.market.twap_dev_bps || 0;
+    $("twapdev").innerHTML = `TWAP 대비 <span class="${dev >= 0 ? "up" : "down"}">${dev > 0 ? "+" : ""}${fmt(dev, 0)}bp</span>`;
+    $("depth").textContent = fmt(s.market.depth_quote, 0) + " USDT";
+    $("window").textContent = (s.policy.twap_window || 0) + "s";
+    $("cost").textContent = fmt((s.last && s.last.round_trip_cost_bps) || 0, 0) + "bp";
+    $("posvalue").textContent = fmt(s.position.value_quote, 2) + " USDT";
+    $("qty").textContent = fmt(s.position.qty_whole, 4);
+    $("avg").textContent = fmt(s.position.avg_price, 6);
+    $("equity").textContent = fmt(s.metrics.equity, 2) + " USDT";
+    $("dd").textContent = fmt(s.metrics.max_drawdown_bps, 0) + "bp";
+    $("declared").textContent = fmt(s.metrics.declared_edge_sum_bps, 0) + "bp";
+    $("realised").textContent = fmt(s.metrics.realised_edge_sum_bps, 0) + "bp";
+    $("cred").textContent = fmt(s.metrics.edge_credibility_bps, 0) + "bp";
+    $("exec").textContent = fmt(s.metrics.avg_execution_edge_bps, 1) + "bp";
+    $("fees").textContent = fmt(s.metrics.fees_paid_quote, 4) + " USDT";
+    $("p1").textContent = fmt(s.policy.max_trade_notional, 0) + " USDT (에이전트 " + fmt(s.controls.size_quote, 0) + ")";
+    $("p2").textContent = fmt(s.policy.max_daily_notional, 0) + " USDT";
+    $("p3").textContent = s.policy.max_drawdown_bps + "bp";
+    $("p4").textContent = s.policy.max_slippage_bps + "bp";
+    $("p5").textContent = s.policy.min_edge_bps + "bp";
+    $("p6").textContent = (s.policy.max_spot_twap_deviation_bps || 0) + "bp";
+    if (s.guards) {
+      $("gmode").textContent = s.guards.mode;
+      $("gkill").textContent = s.guards.kill_switch ? "ON" : "off";
+      $("gcaps").textContent = fmt(s.guards.per_run_cap_quote, 0) + " / " + fmt(s.guards.per_period_cap_quote, 0) + " USDT";
+      $("gspent").textContent = fmt(s.guards.period_spent_quote, 2) + " USDT (" + s.guards.period + ")";
+      $("glimits").textContent = s.guards.max_price_impact_bps + "bp · $" + fmt(s.guards.min_quote_depth_usd, 0);
+    }
+    $("vaulttag").textContent = "vault: " + (s.onchain && s.onchain.ok ? s.onchain.address.slice(0, 10) + "…" : "none");
+    $("vaulttag").className = "tag " + (s.onchain && s.onchain.ok ? "chain" : "");
+    $("eqnote").textContent = "trades " + s.metrics.trades + " · no-trade " + s.metrics.no_trade_decisions + " · window " + (s.market.twap_window_s || 0) + "s";
+    drawCurve(s.equity_curve);
+    renderLog(s.decisions || []);
+    await trace();
+    await reconcile();
+    await erc8004();
+    await x402info();
+  } catch (e) {
+    console.error(e);
   }
-  if (s.runtime) {
-    $("gmode").title = s.runtime.plugins.join(",") + " · actions " + s.runtime.actions.length + " · providers " + s.runtime.providers.length;
-  }
-  if (s.onchain && s.onchain.ok) {
-    $("hash").textContent = "strategy " + (s.strategy_hash || "").slice(0, 10) + "… · vault " + s.onchain.address.slice(0, 8) + "…";
-  }
-  drawCurve(s.equity_curve);
+}
+
+function renderLog(decisions) {
   const log = $("log"); log.innerHTML = "";
-  (s.decisions || []).slice().reverse().forEach(d => {
+  decisions.slice().reverse().forEach(d => {
     const div = document.createElement("div");
     const t = new Date((d.ts || 0) * 1000).toLocaleTimeString();
-    div.innerHTML = `<span class="t">${t}</span><span class="${d.executed ? "up" : "warn"}">${d.action}</span> ${d.explain || ""}`;
+    const cls = d.executed ? "up" : "warn";
+    div.innerHTML = `<span class="t">${t}</span><span class="${cls}">${esc(d.action)}</span> ${esc(d.explain || "")}`;
     log.appendChild(div);
   });
+  if (!decisions.length) log.innerHTML = '<div class="muted">기록 없음</div>';
+}
+
+async function trace() {
+  const t = await (await fetch("/api/trace")).json();
+  const d = t.decision || {};
+  $("tracereason").textContent = (t.counterfactual ? "요청 규모 기준 · " : "")
+    + (d.action ? `${d.action} · edge ${fmt(d.edge_bps,0)}bp / hurdle ${fmt(d.hurdle_bps,0)}bp` : "");
+  const v = t.policy || {};
+  $("traceverdict").className = "verdict " + (v.ok ? "yes" : "no");
+  $("traceverdict").textContent = d.action
+    ? `${d.action} ${fmt(d.size_quote,2)} USDT · 정책 ${v.ok ? "통과" : "거부 — " + v.reason + " (" + (v.detail||"") + ")"}`
+    : "아직 판단 기록이 없습니다.";
+  gatesTable($("gates").querySelector("tbody"), t.gates);
+  $("tracenote").textContent = (d.reasons || []).join(" · ");
+}
+
+async function reconcile() {
+  const r = await (await fetch("/api/reconcile")).json();
+  if (!r.ok) { $("reconcile").innerHTML = '<span class="k muted">' + esc(r.error || "온체인 없음") + '</span>'; return; }
+  $("reconcile").innerHTML = (r.rows || []).map(x =>
+    `<span class="k">${esc(x.field)}</span><span class="v ${x.match ? "up" : "down"}">${esc(x.ledger)} / ${esc(x.vault)} ${x.match ? "✓" : "Δ"}</span>`
+  ).join("");
+}
+
+async function erc8004() {
+  const e = await (await fetch("/api/erc8004")).json();
+  if (!e.configured) { $("erc8004").innerHTML = '<span class="k muted">미등록 (SENTINEL_8004_* 미설정)</span>'; return; }
+  let html = `<span class="k">agent</span><span class="v">#${e.agent_id}</span>`;
+  if (e.reviews) {
+    html += `<span class="k">edgeCredibility</span><span class="v">${e.reviews.edge_credibility.scaled}</span>`;
+    html += `<span class="k">executionCost</span><span class="v">${e.reviews.execution_cost.scaled}</span>`;
+  }
+  $("erc8004").innerHTML = html;
+}
+
+async function x402info() {
+  const x = await (await fetch("/api/x402/info")).json();
+  const tag = $("x402mode");
+  tag.textContent = x.configured ? (x.settlement_active || "paper") : "미설정";
+  tag.className = "tag " + (x.configured ? "chain" : "");
+  if (!x.configured) { $("x402info").innerHTML = '<span class="k muted">' + esc(x.reason) + '</span>'; return; }
+  $("x402info").innerHTML =
+    `<span class="k">price</span><span class="v">${esc(x.amount_human)} USDT</span>` +
+    `<span class="k">payTo</span><span class="v"><code>${esc((x.pay_to||"").slice(0,14))}…</code></span>` +
+    `<span class="k">network</span><span class="v">${esc(x.network)}</span>` +
+    `<span class="k">token domain</span><span class="v">${esc(x.token.name)} v${esc(x.token.version)}</span>`;
+}
+
+async function payDemo() {
+  $("x402result").textContent = "402 → 서명 → 정산 요청 중…";
+  const r = await (await fetch("/api/x402/demo")).json();
+  if (!r.ok) { $("x402result").innerHTML = '<span class="down">' + esc(r.error) + '</span>'; return; }
+  const s = r.settlement || {};
+  $("x402result").innerHTML =
+    `<span class="up">정산 ${esc(r.settlement_mode)}</span> · ${esc(r.paid_atomic)} atomic USDT<br>` +
+    `<code>${esc(s.transaction)}</code><br>` +
+    `payer <code>${esc((r.payer||"").slice(0,12))}…</code> · premium ${esc((r.premium||{}).resource || "")}`;
+}
+
+async function narrate() {
+  const n = await (await fetch("/api/narrate")).json();
+  const label = n.source === "llm" ? "LLM 서술 (숫자 검증됨)" : "결정론적 문장";
+  const note = n.rejected ? `\n[폐기] ${n.reason}` : "";
+  const log = $("log");
+  const div = document.createElement("div");
+  div.innerHTML = `<span class="t">${label}</span>${esc(n.text)}${esc(note)}`;
+  log.prepend(div);
+}
+
+async function step() {
+  const r = await (await fetch("/api/step")).json();
+  const div = document.createElement("div");
+  div.innerHTML = `<span class="t">cycle</span>${esc(r.record.explain || "")}`;
+  $("log").prepend(div);
+  refresh();
 }
 
 async function ask() {
   const q = $("q").value.trim(); if (!q) return;
   const div = document.createElement("div");
-  div.innerHTML = `<span class="t">you</span>${q}`;
+  div.innerHTML = `<span class="t">you</span>${esc(q)}`;
   $("log").prepend(div);
-  const r = await fetch("/api/ask?q=" + encodeURIComponent(q)); const j = await r.json();
+  const r = await (await fetch("/api/ask?q=" + encodeURIComponent(q))).json();
   const a = document.createElement("div");
-  a.innerHTML = `<span class="t">agent</span>${j.answer}`;
+  a.innerHTML = `<span class="t">agent</span>${esc(r.answer)}`;
   $("log").prepend(a);
   $("q").value = "";
-}
-
-async function step() {
-  const r = await fetch("/api/step"); const j = await r.json();
-  const div = document.createElement("div");
-  div.innerHTML = `<span class="t">cycle</span>${j.record.explain || ""}`;
-  $("log").prepend(div);
   refresh();
 }
 
-refresh();
-setInterval(refresh, 15000);
+// ---------------------------------------------------------------- scenario lab
+
+function sliders(){
+  const dev = Number($("sdev").value), size = Number($("ssize").value);
+  const equity = Number($("sequity").value), pos = Number($("spos").value);
+  $("vdev").textContent = (dev > 0 ? "+" : "") + dev + " bp";
+  $("vsize").textContent = size + " USDT";
+  $("vequity").textContent = equity;
+  $("vpos").textContent = pos + " USDT";
+}
+
+async function simulate(){
+  const q = new URLSearchParams({
+    dev: $("sdev").value, size: $("ssize").value, equity: $("sequity").value,
+    high: 1000, pos: $("spos").value,
+    kill: $("skill").checked ? 1 : 0,
+    strategy: $("staker").checked ? "dislocation" : "trend_filtered",
+  });
+  SIM = await (await fetch("/api/simulate?" + q.toString())).json();
+  const d = SIM.decision, o = SIM.outcome || {};
+  const v = $("simverdict");
+  v.className = "verdict " + (o.would_execute ? "yes" : "no");
+  v.innerHTML = `<b>${esc(d.action)}</b> ${fmt(d.size_quote,2)} USDT · ${o.would_execute ? "체인까지 통과" : "차단: " + esc(o.blocked_by)}`;
+  $("simexplain").textContent = (d.reasons || []).join(" · ");
+  showSim(SIMTAB);
+}
+
+function showSim(tab){
+  SIMTAB = tab;
+  $("tab-order").className = "small" + (tab === "order" ? " active" : "");
+  $("tab-requested").className = "small" + (tab === "requested" ? " active" : "");
+  if (!SIM) return;
+  const side = SIM[tab];
+  gatesTable($("simgates").querySelector("tbody"), side ? side.policy.gates : []);
+  if (side && side.guards && !side.guards.ok) {
+    gatesTable($("simgates").querySelector("tbody"), [...side.policy.gates,
+      {code: side.guards.code, rule: "swap guard", ok: false, applies: true, limit: "", actual: side.guards.detail}]);
+  }
+}
+
+async function presets(){
+  const p = await (await fetch("/api/presets")).json();
+  const box = $("presets");
+  const spec = {
+    quiet: {dev:0,size:120,pos:0,equity:1000,taker:false,kill:false},
+    dump: {dev:-400,size:120,pos:0,equity:1000,taker:false,kill:false},
+    dump_taker: {dev:-400,size:120,pos:0,equity:1000,taker:true,kill:false},
+    pump_exit: {dev:260,size:120,pos:120,equity:1000,taker:false,kill:false},
+    drawdown: {dev:-400,size:120,pos:0,equity:800,taker:true,kill:false},
+    oversize: {dev:-400,size:400,pos:0,equity:1000,taker:true,kill:false},
+    kill: {dev:-400,size:120,pos:0,equity:1000,taker:true,kill:true},
+  };
+  Object.entries(p.presets || {}).forEach(([key, entry]) => {
+    const b = document.createElement("button");
+    b.className = "small"; b.textContent = entry.label;
+    b.onclick = () => {
+      const s = spec[key] || spec.quiet;
+      $("sdev").value = s.dev; $("ssize").value = s.size; $("sequity").value = s.equity;
+      $("spos").value = s.pos; $("staker").checked = s.taker; $("skill").checked = s.kill;
+      sliders(); simulate();
+    };
+    box.appendChild(b);
+  });
+}
+
+["sdev","ssize","sequity","spos"].forEach(id => $(id).addEventListener("input", sliders));
+sliders(); refresh(); presets();
+setInterval(refresh, 20000);
 </script>
 </body>
 </html>

@@ -8,9 +8,11 @@ money), so:
   * `PaperFacilitator` verifies for real (EIP-3009 signature, window, nonce) and writes a settlement
     receipt into a local ledger. `transaction` is prefixed `paper:` so nobody can mistake it for a
     chain hash.
-  * `ChainFacilitator` exists as the adapter for a real deployment, and refuses chain 177 unless both
-    the constructor flag and `SENTINEL_ALLOW_MAINNET_SPEND=1` are set. That is a code guard, not a
-    comment: the demo cannot leak gas by being misconfigured.
+  * `ChainFacilitator` broadcasts the signed `transferWithAuthorization` and returns the real
+    transaction hash. It refuses chain 177 unless one of these is true: (a) both `allow_mainnet` and
+    `SENTINEL_ALLOW_MAINNET_SPEND=1` are set (a deliberate opt-in), or (b) the RPC is a loopback
+    address, where a transaction cannot spend real funds. That is a code guard, not a comment: the
+    demo cannot leak gas by being misconfigured, and a local fork can still settle for real.
 """
 
 from __future__ import annotations
@@ -20,11 +22,18 @@ import json
 import os
 import time
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 
 from .types import PaymentPayload, PaymentRequirements, Settlement
 from .verify import NonceStore, PaymentVerifier, VerifyResult
 
 MAINNET_CHAIN_ID = 177
+
+
+def hex_hash(value) -> str:
+    text = value.hex() if hasattr(value, "hex") else str(value)
+    return text if text.startswith("0x") else "0x" + text
+_LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1", "0.0.0.0"}
 
 
 class SettlementError(Exception):
@@ -118,7 +127,7 @@ class PaperFacilitator:
 
 @dataclass
 class ChainFacilitator:
-    """The real broadcaster, kept unreachable on mainnet by design."""
+    """The real broadcaster, unreachable on mainnet unless deliberately armed."""
 
     requirements: PaymentRequirements
     web3: object
@@ -126,9 +135,21 @@ class ChainFacilitator:
     sender: str
     nonces: NonceStore = field(default_factory=NonceStore)
     allow_mainnet: bool = False
+    private_key: str = ""
 
     def __post_init__(self) -> None:
         self.verifier = PaymentVerifier(self.requirements, self.nonces)
+
+    # ------------------------------------------------------------------ guards
+
+    def rpc_is_local(self) -> bool:
+        try:
+            provider = self.web3.provider  # type: ignore[attr-defined]
+            uri = getattr(provider, "endpoint_uri", "") or ""
+        except Exception:  # noqa: BLE001 - an unknown provider is treated as remote
+            return False
+        host = (urlparse(uri).hostname or "").lower()
+        return host in _LOCAL_HOSTS
 
     def _refuse_mainnet(self) -> None:
         chain_id = int(self.web3.eth.chain_id)  # type: ignore[attr-defined]
@@ -136,9 +157,31 @@ class ChainFacilitator:
             return
         if self.allow_mainnet and os.environ.get("SENTINEL_ALLOW_MAINNET_SPEND") == "1":
             return
+        if self.rpc_is_local():
+            return  # a loopback node cannot spend real funds
         raise MainnetSpendForbidden(
-            "chain 177 settlement requires allow_mainnet=True and SENTINEL_ALLOW_MAINNET_SPEND=1"
+            "chain 177 settlement requires allow_mainnet=True and SENTINEL_ALLOW_MAINNET_SPEND=1 "
+            "(or a loopback RPC)"
         )
+
+    # ------------------------------------------------------------------ settle
+
+    def _broadcast(self, fn):
+        if not self.private_key:
+            return fn.transact({"from": self.sender})
+        w3 = self.web3  # type: ignore[attr-defined]
+        account = w3.eth.account.from_key(self.private_key)
+        tx = fn.build_transaction(
+            {
+                "from": account.address,
+                "nonce": w3.eth.get_transaction_count(account.address),
+                "gas": 200_000,
+                "gasPrice": w3.eth.gas_price,
+                "chainId": int(w3.eth.chain_id),
+            }
+        )
+        signed = account.sign_transaction(tx)
+        return w3.eth.send_raw_transaction(signed.raw_transaction)
 
     def settle(self, payload, resource: str = "") -> Settlement:
         self._refuse_mainnet()
@@ -148,14 +191,19 @@ class ChainFacilitator:
             return Settlement(False, "", self.requirements.network, result.payer, result.reason)
         auth = result.authorization
         assert auth is not None
+        # Mark first: a revert below must still not allow the same authorization to be retried forever.
         self.nonces.mark(auth.nonce)
-        tx = self.token.functions.transferWithAuthorization(  # type: ignore[attr-defined]
+        fn = self.token.functions.transferWithAuthorization(  # type: ignore[attr-defined]
             auth.from_,
             auth.to,
             int(auth.value),
             int(auth.valid_after),
             int(auth.valid_before),
             bytes.fromhex(auth.nonce.removeprefix("0x")),
-            p.signature,
-        ).transact({"from": self.sender})
-        return Settlement(True, tx.hex(), self.requirements.network, result.payer)
+            bytes.fromhex(str(p.signature).removeprefix("0x")),
+        )
+        tx = self._broadcast(fn)
+        receipt = self.web3.eth.wait_for_transaction_receipt(tx, timeout=120)  # type: ignore[attr-defined]
+        if int(receipt.get("status", 0)) != 1:
+            return Settlement(False, hex_hash(tx), self.requirements.network, result.payer, "settlement_reverted")
+        return Settlement(True, hex_hash(tx), self.requirements.network, result.payer)

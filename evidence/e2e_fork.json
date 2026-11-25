@@ -1,0 +1,576 @@
+{
+ "generated_at": 1795587223,
+ "environment": {
+  "chain_id": 177,
+  "rpc": "http://127.0.0.1:41071",
+  "fork_of": "https://mainnet.hsk.xyz",
+  "twap_window_s": 600,
+  "pool": "0x4ff515761864e7838B0AdB8b5b2B8B7A068905dC",
+  "depth_quote_usdt": 424872.91
+ },
+ "addresses": {
+  "vault": "0x38a024C0b412B9d1db8BC398140D00F5Af3093D4",
+  "identity": "0x5fc748f1FEb28d7b76fa1c6B07D8ba2d5535177c",
+  "reputation": "0xB82008565FdC7e44609fA118A4a681E92581e680",
+  "validation": "0x2a810409872AfC346F9B5b26571Fd6eC42EA4849",
+  "adapter": "0xb9bEECD1A582768711dE1EE7B0A1d582D9d72a6C",
+  "owner": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "strategy_signer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+  "risk_signer": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+ },
+ "strategies": {
+  "trend_filtered": "0x9e1672a403b388aee962327b0436b0acf0c12e78231d87773e1fbf9e83b9f485",
+  "dislocation": "0xaf86956d680655a58c3dbcc1f2ef6587db3230087ab7a4e0553264ab404c0a2a"
+ },
+ "market": {
+  "dislocation_bps_created": 381,
+  "twap_tick": -301491,
+  "spot_tick": -301872,
+  "entries": {
+   "decision": "BUY",
+   "edge_bps": 166.48,
+   "hurdle_bps": 146.0,
+   "size_quote": 50.907559,
+   "amount_out": 652972164575326718160,
+   "leg_edge_bps": 351.6,
+   "tx": "0x652aad507f99e5e3f924c449bedf875e40357b0728c39d9537bef2cee7c39ee6"
+  },
+  "exit": {
+   "decision": "SELL",
+   "realised_edge_bps": 601.0,
+   "leg_edge_bps": 247.1,
+   "tx": "0x85744e532416981bdddcca471398d6373f18de2750f4abc7a1ba1c24a720cc53"
+  },
+  "default_strategy_refusal": {
+   "action": "HOLD",
+   "reasons": [
+    "adverse trend -188bp vs bar vol 30bp: mean reversion disarmed"
+   ],
+   "onchain_tx": "0xd8a21e1d592ea0161c92bc3dec33020850b1845321bff25ca585774d3a800942"
+  }
+ },
+ "vault_stats": {
+  "tradeCount": 2,
+  "winCount": 1,
+  "realizedPnlQuote": 3059353,
+  "feesPaidQuote": 310718,
+  "declaredEdgeSumBps": 166,
+  "realizedEdgeSumBps": 600,
+  "equity": 1003059353,
+  "highWater": 1003059353,
+  "oracleHealthy": true,
+  "executionEdgeSumBps": 595,
+  "edgeCredibilityBps": 36144,
+  "avgExecutionEdgeBps": 297
+ },
+ "erc8004": {
+  "agent_id": 1,
+  "credibility_feedback": {
+   "count": 1,
+   "value": 36144,
+   "decimals": 0
+  },
+  "execution_feedback": {
+   "count": 1,
+   "value": 297,
+   "decimals": 0
+  }
+ },
+ "reconcile": {
+  "rows": [
+   {
+    "field": "trades",
+    "ledger": 2,
+    "vault": 2.0,
+    "delta": 0.0,
+    "match": true
+   },
+   {
+    "field": "declared_edge_sum_bps",
+    "ledger": 166,
+    "vault": 166.0,
+    "delta": 0.0,
+    "match": true
+   },
+   {
+    "field": "realised_edge_sum_bps",
+    "ledger": 601.0,
+    "vault": 600.0,
+    "delta": 1.0,
+    "match": true
+   },
+   {
+    "field": "avg_execution_edge_bps",
+    "ledger": 299.3,
+    "vault": 297.0,
+    "delta": 2.3,
+    "match": true
+   }
+  ],
+  "all_match": true,
+  "vault": {
+   "ok": true,
+   "address": "0x38a024C0b412B9d1db8BC398140D00F5Af3093D4",
+   "trade_count": 2,
+   "win_count": 1,
+   "realised_pnl_quote": 3059353,
+   "fees_paid_quote": 310718,
+   "declared_edge_sum_bps": 166,
+   "realised_edge_sum_bps": 600,
+   "equity": 1003059353,
+   "high_water": 1003059353,
+   "daily_notional": 50907559,
+   "oracle_healthy": true,
+   "execution_edge_sum_bps": 595,
+   "edge_credibility_bps": 36144,
+   "avg_execution_edge_bps": 297,
+   "paused": false
+  }
+ },
+ "steps": [
+  {
+   "step": "deploy SentinelVault",
+   "tx": "003c33ffc5395c40e57da6ae2407e133e4f4f4b2dd8b76be512d6e719b5f957d",
+   "gas_used": 3795712,
+   "status": 1,
+   "address": "0x38a024C0b412B9d1db8BC398140D00F5Af3093D4"
+  },
+  {
+   "step": "deploy IdentityRegistry",
+   "tx": "c17ba2cbe208d24d594190b181d6d7e62d959adb4255196be7a3c4d5c8dca289",
+   "gas_used": 1959943,
+   "status": 1,
+   "address": "0x5fc748f1FEb28d7b76fa1c6B07D8ba2d5535177c"
+  },
+  {
+   "step": "deploy ReputationRegistry",
+   "tx": "e85218b7a635da90af71d0af0ad09d314835636343c185ea28665209fbc81196",
+   "gas_used": 1586902,
+   "status": 1,
+   "address": "0xB82008565FdC7e44609fA118A4a681E92581e680"
+  },
+  {
+   "step": "deploy ValidationRegistry",
+   "tx": "c693da83e35a343b1a694281fa8b2a26043d9ede915fe956bdee689279191fcd",
+   "gas_used": 839374,
+   "status": 1,
+   "address": "0x2a810409872AfC346F9B5b26571Fd6eC42EA4849"
+  },
+  {
+   "step": "deploy Sentinel8004Adapter",
+   "tx": "87957fdd06fa9a0b48f6da04d517ef01ef6678069e086fd97a39ab659b00969a",
+   "gas_used": 680351,
+   "status": 1,
+   "address": "0xb9bEECD1A582768711dE1EE7B0A1d582D9d72a6C"
+  },
+  {
+   "step": "ReputationRegistry.initialize",
+   "tx": "2d2f8152b808cf08166d24c4f94f2e0ee3297868a75b33321abf32e115bf1b5c",
+   "gas_used": 66125,
+   "status": 1
+  },
+  {
+   "step": "ValidationRegistry.initialize",
+   "tx": "10cc5ea90ae41205d8ae4639994440313e941cb7c90bf1bf9a819249524f3256",
+   "gas_used": 66113,
+   "status": 1
+  },
+  {
+   "step": "registerStrategy(trend_filtered)",
+   "tx": "4d6edb39e7fb455fe4b9db6e44781c60efdab948dbbe44abe71243faae6b064a",
+   "gas_used": 45747,
+   "status": 1
+  },
+  {
+   "step": "registerStrategy(dislocation)",
+   "tx": "8d8748696167d935e7e3e08de13c40a1c04e286c327411d0f09a738c87ed8412",
+   "gas_used": 45747,
+   "status": 1
+  },
+  {
+   "step": "setMarket(WHSK/USDT 0.3%)",
+   "tx": "95577f6a42be8830278e2b33edf329b59d5556efb96435b3c3113940c1ae0392",
+   "gas_used": 101093,
+   "status": 1
+  },
+  {
+   "step": "unpause (owner arms the vault)",
+   "tx": "91d5e053e2e389ea770297d1a847272ceac495e05319f471aac40d81bff0f9c2",
+   "gas_used": 27735,
+   "status": 1
+  },
+  {
+   "step": "USDT: pool → owner (fork borrow)",
+   "tx": "58bf91c84418cc6337f86694aa753cabc1eaae5552a9989d542cb174ed471a3b",
+   "gas_used": 51484,
+   "status": 1
+  },
+  {
+   "step": "WHSK: pool → whale (fork borrow)",
+   "tx": "f533ba66c2fc8516f194dbf624aeea54af1ec7c9f92a14c1444920f3c45ae4bf",
+   "gas_used": 51450,
+   "status": 1
+  },
+  {
+   "step": "owner approves vault for USDT",
+   "tx": "5ffe9483beb7863056194d7a73ac9e74a08c9287258434fcb1508cdd56a905d1",
+   "gas_used": 46543,
+   "status": 1
+  },
+  {
+   "step": "owner deposits 1,000 USDT",
+   "tx": "1e0ace2c6f7b3394e27eb4cb5b7719c35c4899cfe16ccbce1776197fa928ff94",
+   "gas_used": 61545,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK: approve router",
+   "tx": "a3789868290d68521856c9016236632488b75644854cb240abd661f6744ca380",
+   "gas_used": 46573,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "a558c98cdf62d084c79c9221982d0fbbb751bc97a9984a5bc54a7f57f7757ee2",
+   "gas_used": 126135,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "5952610bb28531118995ef82c992da07f87f29e340f1d5ab077edda04626c7f4",
+   "gas_used": 109079,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "35388298d7dd8679ebb09cf96b191784d75f4ccd66b487717f90574b31a598d6",
+   "gas_used": 109049,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "b8aa1b2ddad7bd137bfd0ef52d5c4c2626107a96732ef32b3863869c53ba6a26",
+   "gas_used": 109023,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "c92d825a6e460a65dc97b23ee48656c0775145703e8b28b195d274b91fb7a674",
+   "gas_used": 109049,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "d5d16321f8ba92027e3fa61b52863f5fe24b95e578ca8067636d9aa2c7e5eb04",
+   "gas_used": 109065,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "ac5288b56278b8866445b439fee99223ac1870f3f955ffc8754f8636b6324ac4",
+   "gas_used": 108091,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "5aaa42761db4f7bd8d7e6cf716be2ab53cd63ffc6344d01c4b482153c375dde2",
+   "gas_used": 109045,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "db341394e8845df4a3f236ba1016c7c34b3256eea3526f24e201c24f5a9a7829",
+   "gas_used": 109089,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "61e21768ac66564669d18d29a340f1d2534a9c0ab56ee5d2f17ec626a7468f4a",
+   "gas_used": 109021,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "1f19edaad369aaed92e0a0411164c2555400ac50a313ad67a8fb0c644d210acd",
+   "gas_used": 109051,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "288c119bc6cbb6bb58d49d5f021c79d15fffc47d34a5a73ed8943343b33d6228",
+   "gas_used": 109077,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "55352b12e034b30343b1d5c98145583c9e68daed6cd21efecb2f9d9febe617e6",
+   "gas_used": 109079,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "996c9fd51ebd2fa3538f88c156b341149d19f4e6b5f4f0ca1e9ef60bb5da85b0",
+   "gas_used": 109079,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "cf1cbf18ce62caa93e68f96fa09eee4a2d6c4d5982ef090cededf063b67370ef",
+   "gas_used": 108091,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "0bc0339215482d2b57e8f34011b843b253aebfc286990ed20e5af5072f1c6355",
+   "gas_used": 109045,
+   "status": 1
+  },
+  {
+   "step": "whale sells 6,000 WHSK",
+   "tx": "3563d51452cdb97576b254a58134a40e8fbaa5f3af33bee0903f73bdf388d3ae",
+   "gas_used": 109051,
+   "status": 1
+  },
+  {
+   "step": "USDT: pool → whale (fork borrow)",
+   "tx": "abeed9d33c66511c087fb3fd9d121334c0582dbadc98610b2fdec70e4d278656",
+   "gas_used": 34384,
+   "status": 1
+  },
+  {
+   "step": "whale buys with 1,500 USDT: approve router",
+   "tx": "773ec10f680fbaebd2ff28e6fd5898ffd83c079a6f1f9662ab9476b1e03e2251",
+   "gas_used": 46555,
+   "status": 1
+  },
+  {
+   "step": "whale buys with 1,500 USDT",
+   "tx": "828af4a5745f3762e7df89b0ea85551dae79b965dc22194615430868cbd51114",
+   "gas_used": 108940,
+   "status": 1
+  },
+  {
+   "step": "whale buys with 1,500 USDT",
+   "tx": "814247430adb16eee6ed46ad2d3e42a48b49a600d560fc1c37fcd5d2777db00b",
+   "gas_used": 108966,
+   "status": 1
+  },
+  {
+   "step": "whale buys with 1,500 USDT",
+   "tx": "bf378994fe752020108e4de2679e4297d31e4d6d7ab5e7e9ee2986bbd473341d",
+   "gas_used": 108952,
+   "status": 1
+  },
+  {
+   "step": "whale buys with 1,500 USDT",
+   "tx": "a2d19bd937da4600490bcb115f4d601ab1e1b933578e1db29af70465d482b14b",
+   "gas_used": 108912,
+   "status": 1
+  },
+  {
+   "step": "whale buys with 1,500 USDT",
+   "tx": "9614cdbc08ec1b6c0226573a18dc4217922b4cb9a55c5fb45591f3989d72eb80",
+   "gas_used": 108936,
+   "status": 1
+  },
+  {
+   "step": "whale buys with 1,500 USDT",
+   "tx": "c9c89e7f5b0107c886dac5cdaaed07be6576fd7253f6d94a11e0d0600e1b044a",
+   "gas_used": 138960,
+   "status": 1
+  },
+  {
+   "step": "whale buys with 1,500 USDT",
+   "tx": "f39a4cf7fb6a93c9f989e75d081cb9e6f00343dc61c73303c2c8c8f7102be211",
+   "gas_used": 108946,
+   "status": 1
+  },
+  {
+   "step": "whale buys with 1,500 USDT",
+   "tx": "e397f92e25eefd0761a59caf4f8a747085d122613b5c026d6b41cd5e7ef02196",
+   "gas_used": 108958,
+   "status": 1
+  },
+  {
+   "step": "whale buys with 1,500 USDT",
+   "tx": "c948b34dbba0534904ae2b88f26302e9fb21c44d65d606b8ccf87a17fb9a5018",
+   "gas_used": 108948,
+   "status": 1
+  },
+  {
+   "step": "IdentityRegistry.register (agent #1)",
+   "tx": "00873ea6623eebef9762fbe4bd49f2a6196398d07d8791a19504e3d21ddb2e35",
+   "gas_used": 681018,
+   "status": 1
+  },
+  {
+   "step": "adapter.setAgent",
+   "tx": "67a55e8f4a0d829337f17aa93127027de3a53fd489dd2e0531346fe8cc835089",
+   "gas_used": 46978,
+   "status": 1
+  },
+  {
+   "step": "validationRequest (evidence commitment)",
+   "tx": "6db0e46722360649d056c6528cdae361f929a28e2251684a93bf9c97f951bb6b",
+   "gas_used": 180411,
+   "status": 1
+  },
+  {
+   "step": "adapter.validate (from vault.stats)",
+   "tx": "f697a8b771189966b39264c73cda848470303410053ceaa2b8e00a16e12634c9",
+   "gas_used": 173570,
+   "status": 1
+  },
+  {
+   "step": "adapter.attest (reputation from vault.stats)",
+   "tx": "8b2f1ab66533c5e475800f6d41cdb2829269168d8578f1ac8fe299626d08a76a",
+   "gas_used": 344755,
+   "status": 1
+  }
+ ],
+ "checks": [
+  {
+   "check": "chain is HSK mainnet (forked)",
+   "ok": true,
+   "detail": "chain_id=177"
+  },
+  {
+   "check": "pool resolved by the factory",
+   "ok": true,
+   "detail": "0x4ff515761864e7838B0AdB8b5b2B8B7A068905dC"
+  },
+  {
+   "check": "vault holds the deposit",
+   "ok": true,
+   "detail": "1000.00 USDT"
+  },
+  {
+   "check": "the pool starts near its own TWAP",
+   "ok": true,
+   "detail": "dislocation=0bp spot=-301484 twap=-301484"
+  },
+  {
+   "check": "a real dislocation was created",
+   "ok": true,
+   "detail": "381bp"
+  },
+  {
+   "check": "default strategy refuses the dump (adverse trend)",
+   "ok": true,
+   "detail": "adverse trend -188bp vs bar vol 30bp: mean reversion disarmed"
+  },
+  {
+   "check": "the refusal was written on-chain",
+   "ok": true,
+   "detail": "0xd8a21e1d592ea0161c92bc3dec33020850b1845321bff25ca585774d3a800942"
+  },
+  {
+   "check": "dislocation strategy enters",
+   "ok": true,
+   "detail": "edge=166.48bp size=50.907559 USDT reasons=spot 370bp below TWAP, reversion edge 166bp > hurdle 146bp"
+  },
+  {
+   "check": "vault tradeCount = 1",
+   "ok": true,
+   "detail": "tradeCount=1"
+  },
+  {
+   "check": "declared edge registered on entry",
+   "ok": true,
+   "detail": "declared=166 agent=166.48"
+  },
+  {
+   "check": "allowance reset after the trade",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "position booked equals the fill",
+   "ok": true,
+   "detail": "qty=652972164575326718160"
+  },
+  {
+   "check": "the agent's own ledger holds the position",
+   "ok": true,
+   "detail": "ledger_qty=652972164575326718160 keys=['0xB210D2120d57b758EE163cFfb43e73728c471Cf1']"
+  },
+  {
+   "check": "agent exits after the reversion",
+   "ok": true,
+   "detail": "action=SELL realised=601.0bp edge=191.18/146.0 reasons=spot above TWAP (+279bp, RSI 0) -> take profit policy=OK guards=OK"
+  },
+  {
+   "check": "vault tradeCount = 2",
+   "ok": true,
+   "detail": "tradeCount=2"
+  },
+  {
+   "check": "the entry claim was settled with a realised number",
+   "ok": true,
+   "detail": "realisedEdgeSum=600bp credibility=36144bp"
+  },
+  {
+   "check": "validation answered 100 from the vault's record",
+   "ok": true,
+   "detail": "response=100 tag=hard"
+  },
+  {
+   "check": "reputation = the vault's own credibility number",
+   "ok": true,
+   "detail": "summary=36144 credibility=36144"
+  },
+  {
+   "check": "off-chain ledger reconciles with the vault",
+   "ok": true,
+   "detail": "all rows match"
+  },
+  {
+   "check": "x402: the agent's payment settled on-chain",
+   "ok": true,
+   "detail": "status=200 settlement={'success': True, 'transaction': '0x23d80589d5096ed0832057682a96ef3d3c44dd46688eae93ccd3cd28420a1934', 'network': 'eip155:177', 'payer': '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'} error="
+  },
+  {
+   "check": "x402: settlement returned a real transaction hash",
+   "ok": true,
+   "detail": "0x23d80589d5096ed0832057682a96ef3d3c44dd46688eae93ccd3cd28420a1934"
+  },
+  {
+   "check": "x402: the settlement transaction succeeded",
+   "ok": true,
+   "detail": "gas=65840"
+  },
+  {
+   "check": "x402: the EIP-3009 nonce is consumed on-chain",
+   "ok": true,
+   "detail": "events=1"
+  },
+  {
+   "check": "x402: authorizationState[nonce] is true",
+   "ok": true,
+   "detail": "nonce=0x00dd42d94cbb84d6…"
+  },
+  {
+   "check": "x402: the payee received exactly 0.001 USDT",
+   "ok": true,
+   "detail": "payee=10001000"
+  },
+  {
+   "check": "x402: the premium payload is the agent's book",
+   "ok": true,
+   "detail": "/api/premium/edge"
+  }
+ ],
+ "x402": {
+  "token": "0x927b167526bAbB9be047421db732C663a0b77B11",
+  "price_atomic": 1000,
+  "payer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+  "payee": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+  "settlement_mode": "chain",
+  "tx": "0x23d80589d5096ed0832057682a96ef3d3c44dd46688eae93ccd3cd28420a1934",
+  "gas_used": 65840,
+  "nonce": "0x00dd42d94cbb84d6c8a1888b7da55c74916f5310e3ff30ef8fc60428361143ff",
+  "authorization_state": true,
+  "payee_balance": 10001000,
+  "premium_resource": "/api/premium/edge"
+ }
+}

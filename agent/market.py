@@ -20,6 +20,7 @@ from .config import Addresses, Market
 from .rpc import ABI_ERC20, ABI_FACTORY, ABI_POOL, ABI_QUOTER, Rpc
 
 SWAP_TOPIC = "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67"
+BPS = 10_000
 
 
 def tick_to_price(tick: int) -> float:
@@ -86,6 +87,25 @@ class Bar:
         if self.open <= 0:
             return 0.0
         return (self.close - self.open) / self.open * 10_000
+
+
+def spot_impact_bps(spot_quote_per_base: float, amount_in: int, amount_out: int, decimals: int, *, is_buy: bool) -> float:
+    """How much worse than the pool's *current spot* this fill is, in bps.
+
+    The quote already contains the 0.3% pool fee, so this number is the whole cost of that leg (fee +
+    curve) and must not be added to a fee term again. It is benchmarked against spot rather than TWAP
+    on purpose: a pool that is 400bp off its TWAP is not "expensive", it is dislocated, and charging the
+    dislocation twice (once as a cost, once as the edge the strategy is trying to capture) is how a
+    mean-reversion bot talks itself out of every trade it was built for.
+    """
+    if spot_quote_per_base <= 0 or amount_in <= 0 or amount_out <= 0:
+        return 0.0
+    unit = 10**decimals
+    if is_buy:
+        effective = (amount_in / 1e6) / (amount_out / unit)  # quote per base actually paid
+        return max(0.0, (effective / spot_quote_per_base - 1.0) * BPS)
+    effective = (amount_out / 1e6) / (amount_in / unit)  # quote per base actually received
+    return max(0.0, (1.0 - effective / spot_quote_per_base) * BPS)
 
 
 @dataclass
@@ -199,7 +219,9 @@ class DexClient:
         """
         pool_addr = self.pool_address(market)
         head = self.rpc.block_number()
-        key = (market.asset.lower(), market.fee)
+        # The window is part of the key: without it, a 40k-block result was served to a 320k-block
+        # request for up to two minutes, and the backtest saw 11 bars however wide it asked.
+        key = (market.asset.lower(), market.fee, lookback_blocks)
         cached = self._cache.get(key)
         if cached and abs(head - cached[0]) < 300 and (time.time() - cached[2]) < 120:
             return cached[1]

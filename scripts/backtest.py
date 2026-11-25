@@ -61,7 +61,9 @@ def run_series(
     led.open_with(1_000.0)
     decimals = market.decimals
     size_cap = policy.max_trade_notional / 1e6 * strategy.target_position_frac
-    taker_haircut = (fee_bps + impact_bps) / 10_000  # fee + impact, paid on every leg
+    # The measured impact already contains the pool fee (the quote is the real output), so the per-leg
+    # haircut is the impact alone; adding the fee again would tax the backtest twice.
+    taker_haircut = impact_bps / 10_000
     rows: list[dict] = []
 
     for i in range(20, len(closes)):
@@ -171,11 +173,20 @@ def main() -> int:
     dex = DexClient(rpc, s.addresses)
     market = MARKETS["WHSK"]
 
-    bars = dex.bars(market, n_bars=a.bars, swaps_per_bar=2)
+    # The pool's swap rate changes day to day (it was ~10 swaps/3h when this was written, ~45 per
+    # 40k blocks on 2026-11-25), so a fixed block window silently stops producing a backtest. Widen
+    # the window until there are enough bars, and record which window the numbers came from.
+    bars, lookback_used = [], 0
+    for lookback in (40_000, 80_000, 160_000, 320_000):
+        bars = dex.bars(market, n_bars=a.bars, swaps_per_bar=2, lookback_blocks=lookback)
+        lookback_used = lookback
+        if len(bars) >= 25:
+            break
     closes = [b.close for b in bars]
     if len(closes) < 25:
-        print("not enough recorded bars to backtest")
+        print(f"not enough recorded bars to backtest (best window {lookback_used:,} blocks -> {len(closes)} bars)")
         return 1
+    print(f"bars={len(bars)} from a {lookback_used:,}-block window")
 
     # impact measured with the real quoter at the size the strategy would use, then the same figure applied
     # to both legs (entry and exit are the same size, so the cost is symmetric by construction)
@@ -217,11 +228,12 @@ def main() -> int:
         "market": market.symbol,
         "pool": state.address,
         "bars": len(bars),
+        "lookback_blocks": lookback_used,
         "block_span_bars": [bars[0].t, bars[-1].t],
         "impact_bps_at_size": round(impact_bps, 1),
         "impact_bps_exit": round(impact_sell_bps, 1),
         "fee_bps_per_leg": market.fee / 100.0,
-        "full_round_trip_cost_bps": round(2 * market.fee / 100.0 + impact_bps + impact_sell_bps, 1),
+        "full_round_trip_cost_bps": round(impact_bps + impact_sell_bps, 1),
         "size_quote": size / 1e6,
         "policy": s.policy.as_dict(),
         "real": {"metrics": real_led.metrics(), "rows": real_rows, "equity": real_led.equity_curve,
@@ -236,7 +248,7 @@ def main() -> int:
         json.dump(blob, fh, ensure_ascii=False, indent=1)
 
     print(f"bars={len(bars)} impact_in={impact_bps:.1f}bp impact_out={impact_sell_bps:.1f}bp "
-          f"round_trip={2 * market.fee / 100.0 + impact_bps + impact_sell_bps:.1f}bp size={size/1e6:.0f} USDT")
+          f"round_trip={impact_bps + impact_sell_bps:.1f}bp (fee inside each quote) size={size/1e6:.0f} USDT")
     print("REAL      ", json.dumps(real_led.metrics(), ensure_ascii=False))
     print("MR SYNTH  ", json.dumps(mr_led.metrics(), ensure_ascii=False))
     print("DOWN SYNTH", json.dumps(dt_led.metrics(), ensure_ascii=False))

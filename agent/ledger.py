@@ -141,11 +141,16 @@ class Ledger:
         declared = sum(t.declared_edge_bps for t in self.trades if t.side == "BUY")
         realised = sum(t.realised_edge_bps for t in self.trades if t.side == "SELL")
         execution = [t.leg_edge_bps for t in self.trades]
+        entries = sum(1 for t in self.trades if t.side == "BUY")
+        exits = sum(1 for t in self.trades if t.side == "SELL")
         return {
             "trades": len(self.trades),
-            "entries": sum(1 for t in self.trades if t.side == "BUY"),
+            "entries": entries,
+            "exits": exits,
             "wins": self.win_count,
-            "hit_rate": (self.win_count / len(self.trades)) if self.trades else 0.0,
+            # A win rate over entries counts a position that is still open as a loss. It is wins per
+            # *closed* trade, which is the only denominator that means anything.
+            "hit_rate": (self.win_count / exits) if exits else 0.0,
             "realised_pnl_quote": round(self.realised_pnl, 6),
             "fees_paid_quote": round(self.fees_paid, 6),
             "equity": round(equity, 6),

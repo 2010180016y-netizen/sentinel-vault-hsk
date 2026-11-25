@@ -1,5 +1,8 @@
 # Slither 트리아지 — 13건 전부, 항목별 처리
 
+> 2026-11-25 3차 재실행(§5)에서도 **13건 그대로**다(신규 지적 0). 이번에 추가된 `SellExceedsPosition`
+> 사전 검사는 `_authorise`의 조건을 하나 늘려 순환 복잡도만 15→16이 됐다.
+
 도구: slither 0.11.6 · solc 0.8.24 · optimizer(200) · via-ir · evm shanghai
 대상: `src/SentinelVault.sol` (프로젝트 소스만, `--filter-paths lib/`)
 출력: `evidence/slither-report.json`, `evidence/slither-report.txt` (2026-11-24 재실행)
@@ -145,3 +148,26 @@ slither <file> --compile-force-framework solc \
 `readAllFeedback`의 어셈블리 트리밍과 `getSummary`의 십진수 스케일링은 우리가 스펙의 모호한 부분을 해석한
 곳이므로, 실제 배포 전에는 감사 또는 최소한 차분 테스트가 필요하다. 이 데모에서는 레지스트리가 자금을
 보관하지 않으므로(평판·검증 기록만) 실패 반경이 자금이 아니라 표시값에 머문다.
+
+---
+
+## 5. 3차 재실행 (2026-11-25, SellExceedsPosition · MockEIP3009 추가 후)
+
+명령·설정은 §4와 동일. 출력: `evidence/slither-2026-11-25-SentinelVault.txt`,
+`evidence/slither-2026-11-25-vault.json`, `evidence/slither-2026-11-25-MockEIP3009.txt`.
+
+| 대상 | 결과 | 판정 |
+|---|---|---|
+| `SentinelVault.sol` | **13건** — High 1(`reentrancy-balance`) / Medium 1(`reentrancy-no-eth`) / Low 9(`calls-loop` 4, `timestamp` 4, `reentrancy-benign` 1) / Info 2(복잡도 16·12) | §3 트리아지 유효. 신규 지적 없음 |
+| `src/mocks/MockEIP3009.sol` | **3건** (`constable-states` 등 Informational/Low) | **테스트 전용 토큰.** 자금을 보관하지 않고, 메인넷 배포 대상이 아니다. `mint`가 공개인 것은 의도(포크 실험용)이며 README·주석에 명시 |
+
+### 5.1 이번 변경이 만든 새 표면과 그 판단
+
+| 변경 | 새 표면 | 판단 |
+|---|---|---|
+| `SellExceedsPosition` (`_authorise`) | 매도 시 `positions[asset].qty` SLOAD 1회 추가 | 스왑 **전**에 거부하므로 실패 시 가스만 소모. 이전에는 스왑 후 `_settle`에서 산술 panic이 났다(기부 토큰 케이스). `test_Revert_WhenSellExceedsTheBook`·`test_SellEqualToTheBookIsAllowed` |
+| `MockEIP3009` | EIP-3009 서명 검증(OpenZeppelin ECDSA) | 프로덕션 자산이 아니라 x402 정산 경로를 실증하는 도구. 도메인 분리자·nonce 소진은 실제 토큰과 동일한 형태 |
+
+**남는 위험(정직)**: ERC-8004 구현은 여전히 외부 감사를 받지 않았다. `readAllFeedback`의 어셈블리
+트리밍과 `getSummary` 스케일링은 스펙의 모호한 부분을 해석한 곳이다. 레지스트리는 자금을 보관하지
+않으므로 실패 반경은 표시값에 머문다.

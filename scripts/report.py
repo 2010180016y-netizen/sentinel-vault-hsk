@@ -22,6 +22,7 @@ from agent.core import SentinelAgent  # noqa: E402
 from agent.ledger import Ledger  # noqa: E402
 
 KST = timezone(timedelta(hours=9))
+PY_TESTS = 173
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -107,6 +108,29 @@ def main() -> int:
             f'거부 기록 {m["no_trade_decisions"]}건 · 최대낙폭 {m["max_drawdown_bps"]:.0f}bp</div></div>'
         )
 
+    fork_panel = ""
+    fork_path = os.path.join(HERE, "evidence", "e2e_fork.json")
+    if os.path.exists(fork_path):
+        e = json.load(open(fork_path, encoding="utf-8"))
+        vs, mk = e["vault_stats"], e["market"]
+        fork_rows = [
+            ["생성된 이탈", f"{mk['dislocation_bps_created']}bp (실제 라우터 스왑)"],
+            ["기본 전략", f"거부 — {'; '.join(mk['default_strategy_refusal']['reasons'])[:90]}"],
+            ["이탈 매수 진입", f"{mk['entries']['size_quote']:.2f} USDT · 주장 {mk['entries']['edge_bps']}bp · tx <code>{mk['entries']['tx'][:18]}…</code>"],
+            ["청산", f"실현 {mk['exit']['realised_edge_bps']}bp · tx <code>{mk['exit']['tx'][:18]}…</code>"],
+            ["볼트 기록", f"거래 {vs['tradeCount']} · 선언 {vs['declaredEdgeSumBps']}bp → 실현 {vs['realizedEdgeSumBps']}bp · 신뢰도 {vs['edgeCredibilityBps']}bp · 다리당 {vs['avgExecutionEdgeBps']}bp"],
+            ["ERC-8004", f"검증 100점 · 평판 {e['erc8004']['credibility_feedback']['value']} (= vault.edgeCredibilityBps())"],
+            ["x402", f"0.001 USDT 실정산 · tx <code>{e['x402']['tx'][:18]}…</code> · gas {e['x402']['gas_used']}"],
+            ["장부↔볼트 대조", "4/4 일치" if e["reconcile"]["all_match"] else "불일치"],
+        ]
+        fork_panel = (
+            "<h2>4b. 포크 end-to-end — 49개 트랜잭션 <span class=\"tag\">REAL</span></h2>"
+            + table(fork_rows, ["단계", "결과"])
+            + "<div class=\"note\">HSK 메인넷 포크에서 실제 라우터·실제 오라클로 돌린 기록이다. "
+            "+600bp는 알파가 아니라 스크립트가 만든 반등이며, 증명하는 것은 수익성이 아니라 "
+            "결정→집행→정산→평판→결제의 연결이다. 재현: <code>python3 scripts/fork_demo.py</code>.</div>"
+        )
+
     html = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8">
 <title>Sentinel HSK — evidence</title>
 <style>
@@ -138,12 +162,12 @@ def main() -> int:
 
 <h2>0. 비용은 이렇게 나옵니다</h2>
 <div class="card"><div class="note">
-테이커는 수수료와 가격 임팩트를 <b>두 번</b> 낸다(들어올 때, 나갈 때). 이전 모델은 두 임팩트를 평균내
-({fee:.0f}×2 + 33 = 93bp) 왕복 비용을 실제보다 낮게 잡았고, 그래서 스스로를 속여 거래할 수 있었다.
-지금은 <code>2×{fee:.0f}bp 수수료 + {bt["impact_bps_at_size"]:.1f}bp 진입 임팩트 + {bt["impact_bps_exit"]:.1f}bp 청산 임팩트
-= {rt:.1f}bp</code>를 쓰고, 여기에 20bp 마진을 더해 허들 {d.hurdle_bps:.0f}bp가 된다.
-정책의 온체인 하한(<code>minEdgeBps = {settings.policy.min_edge_bps}</code>)도 같은 값에서 나왔다 — 즉 "수수료보다 작은 엣지를 주장하면
-컨트랙트가 거부한다"가 말이 아니라 코드다.
+테이커는 들어올 때와 나갈 때 <b>두 번</b> 낸다. 견적에는 이미 0.3% 수수료가 포함되어 있으므로, 이 저장소는
+<code>{bt["impact_bps_at_size"]:.1f}bp 진입 임팩트 + {bt["impact_bps_exit"]:.1f}bp 청산 임팩트 = {rt:.1f}bp</code>를
+왕복 비용으로 쓴다. (이전 모델은 여기에 <code>2×{fee:.0f}bp</code>를 더해 126bp로 이중계상했고, 임팩트를 TWAP 대비로 재서
+이탈 자체를 비용으로 만들었다. 정정 경위: <code>docs/12_deep_audit_and_upgrade.md</code> F3.)
+정책의 온체인 하한(<code>minEdgeBps = {settings.policy.min_edge_bps}</code>)은 측정 비용에 약 80bp의 의도적 마진을 더한 값이다 —
+"수수료보다 작은 엣지를 주장하면 컨트랙트가 거부한다"가 말이 아니라 코드다.
 </div></div>
 
 <h2>1. 실측 시장에서의 판단 (실제 HSKSwap 기록 바 {bt['bars']}개)</h2>
@@ -176,14 +200,16 @@ def main() -> int:
 라운드트립 주장(양수)과 나눠 사과와 오렌지를 비교했고, 그래서 숫자가 좋아 보이거나 나빠 보이는 쪽으로 쉽게 흔들렸다.</span>
 </div></div>
 
+{fork_panel}
+
 <h2>5. 테스트·감사</h2>
 {table([
  ['Foundry (단위·정책·fuzz·공유 테이블)', f'{unit_tests}건 — 현재 {total_tests}건 전체 통과'],
  ['Foundry (메인넷 포크, 실제 라우터·실제 풀)', f'{fork_tests}건 — 실스왑으로 이탈을 만들고 그 이탈을 거래'],
  ['불변식', '5종 · 256 runs · 128,000 호출 · revert 0'],
- ['Python 에이전트', '48건 (mirror parity·대화형 조정·라이브 배선·EIP-712 온체인 대조 포함)'],
+ ['Python 에이전트', f'{PY_TESTS}건 (mirror/guard 파리티·x402·런타임·라이브 배선·시나리오 랩·LLM 경계·HTTP API)'],
  ['Slither', f'{sl.get("total", "?")}건 (High {sl.get("High", 0)} 수용 / Medium {sl.get("Medium", 0)} 수용 / Low {sl.get("Low", 0)} 수용 / Info {sl.get("Informational", 0)}) — 항목별 근거 docs/15_SLITHER_TRIAGE.md'],
- ['배포 비용(포크·추정)', '3,802,309 gas ≈ 1.90 HSK (500 gwei) ≈ $0.15 · 바이트코드 18,675B (EIP-170 한도 내)'],
+ ['배포 비용(포크·추정)', '3,777,090 gas ≈ 1.8885 HSK (500 gwei) ≈ $0.15 · 바이트코드 16,666B (EIP-170 한도 내)'],
 ], ['항목', '결과'])}
 
 <h2>6. 이 리포트를 읽는 법</h2>

@@ -135,8 +135,10 @@ def build_features(
         fee_bps=fee_bps,
         impact_bps_buy=impact_bps_buy,
         impact_bps_sell=impact_bps_sell,
-        # A taker pays fee + impact on the way in AND on the way out. Both impacts are counted.
-        round_trip_cost_bps=2 * fee_bps + impact_bps_buy + impact_bps_sell,
+        # A taker pays on the way in AND on the way out, and each measured impact already contains the
+        # pool fee (the quote is the real output). Adding 2*fee on top double-counted 60bp — the kind of
+        # arithmetic that silently forbids every trade. `fee_bps` stays for reporting.
+        round_trip_cost_bps=impact_bps_buy + impact_bps_sell,
         liquidity_quote=liquidity_quote,
     )
 
@@ -169,8 +171,10 @@ def decide(
     # Risk-adjusted sanity: a dislocation smaller than 1.5 bar-vols is noise, not signal.
     noisy = f.vol_bps > 0 and abs(f.twap_dev_bps) < 1.5 * f.vol_bps
     # A mean-reversion entry into a strong adverse trend is the classic way this strategy dies, so it
-    # is blocked explicitly rather than by hoping conviction falls short.
-    adverse_trend = f.trend_bps < -max(25.0, 1.5 * f.vol_bps)
+    # is blocked explicitly rather than by hoping conviction falls short. A separately registered
+    # `dislocation` strategy makes the opposite bet on purpose (buy the dump, exit at TWAP); it is a
+    # different strategy id, and the drawdown stop, the hurdle and the claim cap still apply to it.
+    adverse_trend = strategy.mode != "dislocation" and f.trend_bps < -max(25.0, 1.5 * f.vol_bps)
 
     reasons: list[str] = []
     action: Action = "HOLD"

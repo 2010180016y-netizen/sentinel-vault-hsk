@@ -1,0 +1,47 @@
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - name: Forge tests (unit, policy, fuzz, invariants, guards, ERC-8004)
+        run: forge test --no-match-path 'test/SentinelVault.fork.t.sol'
+      - name: Build artifacts for the Python byte-level parity test
+        run: forge build
+
+  agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - name: Agent tests (policy/guard parity, x402, runtime, live wiring, lab, narrator, API)
+        run: python -m pytest tests/ -q
+
+  fork:
+    # A live third-party dependency (the public HSK RPC), so it is visible but never blocks a merge.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - name: Mainnet-fork integration (real HSKSwap router, pool oracle, real swaps)
+        run: forge test --match-path 'test/SentinelVault.fork.t.sol'

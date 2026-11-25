@@ -105,9 +105,18 @@ def digest(it: Intent, vault: str, chain_id: int) -> bytes:
     return keccak(b"\x19\x01" + domain_separator(vault, chain_id) + struct_hash(it))
 
 
+def _hex_signature(signature) -> str:
+    """Always `0x`-prefixed. `HexBytes.hex()` dropped the prefix in eth-account 0.13, and every caller
+    that did `sig[2:]` then chopped the first byte of the signature — a 64-byte blob that recovers to
+    nobody, so the live executor reverted `BadStrategySignature`. The unit tests signed and recovered
+    with the same helper and never noticed; the fork run did."""
+    text = signature.hex() if hasattr(signature, "hex") else str(signature)
+    return text if text.startswith("0x") else "0x" + text
+
+
 def sign(it: Intent, private_key: str, vault: str, chain_id: int) -> str:
     signed = Account._sign_hash(digest(it, vault, chain_id), private_key=private_key)
-    return signed.signature.hex()
+    return _hex_signature(signed.signature)
 
 
 def recover(it: Intent, signature: str, vault: str, chain_id: int) -> str:

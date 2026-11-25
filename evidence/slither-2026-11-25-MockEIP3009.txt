@@ -1,0 +1,19 @@
+'forge config --json' running
+'/workspace/.solc-select/artifacts/solc-0.8.24/solc-0.8.24 --version' running
+'/workspace/.solc-select/artifacts/solc-0.8.24/solc-0.8.24 @openzeppelin/=lib/openzeppelin-contracts/ forge-std/=lib/forge-std/src/ v3-core-08/=lib/v3-core-08/ openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/ src/mocks/MockEIP3009.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --optimize --optimize-runs 200 --via-ir --evm-version shanghai --allow-paths .,/workspace/competitions/hsk-chain-seoul-2026/src/mocks' running
+INFO:Detectors:
+Detector: unused-return
+MockEIP3009.transferWithAuthorization(address,address,uint256,uint256,uint256,bytes32,bytes) (src/mocks/MockEIP3009.sol#84-107) ignores return value by (recovered,err,None) = ECDSA.tryRecover(digest,signature) (src/mocks/MockEIP3009.sol#101)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
+INFO:Detectors:
+Detector: timestamp
+MockEIP3009.transferWithAuthorization(address,address,uint256,uint256,uint256,bytes32,bytes) (src/mocks/MockEIP3009.sol#84-107) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp <= validAfter (src/mocks/MockEIP3009.sol#93)
+	- block.timestamp >= validBefore (src/mocks/MockEIP3009.sol#94)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Detectors:
+Detector: constable-states
+MockEIP3009.symbol (src/mocks/MockEIP3009.sol#17) should be constant 
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#state-variables-that-could-be-declared-constant
+INFO:Slither:src/mocks/MockEIP3009.sol analyzed (2 contracts with 102 detectors), 3 result(s) found
