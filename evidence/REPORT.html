@@ -16,7 +16,7 @@
  .warn{color:#ffc857} .ok{color:#38d39f} code{background:#151b22;padding:1px 5px;border-radius:4px}
 </style></head><body><div class="wrap">
 <h1>Sentinel HSK — 실측 증거</h1>
-<div class="sub">HSK Chain Horizon Hackathon · Seoul / Track 1 · 2026-11-25 15:16 KST · chain 177 · 전부 재생성 가능한 숫자</div>
+<div class="sub">HSK Chain Horizon Hackathon · Seoul / Track 1 · 2026-11-25 15:23 KST · chain 177 · 전부 재생성 가능한 숫자</div>
 
 <div class="grid">
   <div class="kpi"><div class="k">WHSK/USDT TWAP</div><div class="v">0.08079</div></div>
@@ -67,10 +67,10 @@
 라운드트립 주장(양수)과 나눠 사과와 오렌지를 비교했고, 그래서 숫자가 좋아 보이거나 나빠 보이는 쪽으로 쉽게 흔들렸다.</span>
 </div></div>
 
-<h2>4b. 포크 end-to-end — 49개 트랜잭션 <span class="tag">REAL</span></h2><table><thead><tr><th>단계</th><th>결과</th></tr></thead><tbody><tr><td>생성된 이탈</td><td>381bp (실제 라우터 스왑)</td></tr><tr><td>기본 전략</td><td>거부 — adverse trend -188bp vs bar vol 30bp: mean reversion disarmed</td></tr><tr><td>이탈 매수 진입</td><td>50.91 USDT · 주장 166.48bp · tx <code>0x652aad507f99e5e3…</code></td></tr><tr><td>청산</td><td>실현 601.0bp · tx <code>0x85744e532416981b…</code></td></tr><tr><td>볼트 기록</td><td>거래 2 · 선언 166bp → 실현 600bp · 신뢰도 36144bp · 다리당 297bp</td></tr><tr><td>ERC-8004</td><td>검증 100점 · 평판 36144 (= vault.edgeCredibilityBps())</td></tr><tr><td>x402</td><td>0.001 USDT 실정산 · tx <code>0x23d80589d5096ed0…</code> · gas 65840</td></tr><tr><td>장부↔볼트 대조</td><td>4/4 일치</td></tr></tbody></table><div class="note">HSK 메인넷 포크에서 실제 라우터·실제 오라클로 돌린 기록이다. +600bp는 알파가 아니라 스크립트가 만든 반등이며, 증명하는 것은 수익성이 아니라 결정→집행→정산→평판→결제의 연결이다. 재현: <code>python3 scripts/fork_demo.py</code>.</div>
+<h2>4b. 포크 end-to-end — 49개 트랜잭션 <span class="tag">REAL</span></h2><table><thead><tr><th>단계</th><th>결과</th></tr></thead><tbody><tr><td>생성된 이탈</td><td>381bp (실제 라우터 스왑)</td></tr><tr><td>기본 전략</td><td>거부 — adverse trend -188bp vs bar vol 31bp: mean reversion disarmed</td></tr><tr><td>이탈 매수 진입</td><td>51.71 USDT · 주장 166.48bp · tx <code>0x63831b5968ec40a4…</code></td></tr><tr><td>청산</td><td>실현 601.0bp · tx <code>0xac4143d647f6a731…</code></td></tr><tr><td>볼트 기록</td><td>거래 2 · 선언 166bp → 실현 600bp · 신뢰도 36144bp · 다리당 297bp</td></tr><tr><td>ERC-8004</td><td>검증 100점 · 평판 36144 (= vault.edgeCredibilityBps())</td></tr><tr><td>x402</td><td>0.001 USDT 실정산 · tx <code>0xd44fce5ccdbc3353…</code> · gas 65840</td></tr><tr><td>장부↔볼트 대조</td><td>4/4 일치</td></tr></tbody></table><div class="note">HSK 메인넷 포크에서 실제 라우터·실제 오라클로 돌린 기록이다. +600bp는 알파가 아니라 스크립트가 만든 반등이며, 증명하는 것은 수익성이 아니라 결정→집행→정산→평판→결제의 연결이다. 재현: <code>python3 scripts/fork_demo.py</code>.</div>
 
 <h2>5. 테스트·감사</h2>
-<table><thead><tr><th>항목</th><th>결과</th></tr></thead><tbody><tr><td>Foundry (단위·정책·fuzz·공유 테이블)</td><td>46건 — 현재 74건 전체 통과</td></tr><tr><td>Foundry (메인넷 포크, 실제 라우터·실제 풀)</td><td>5건 — 실스왑으로 이탈을 만들고 그 이탈을 거래</td></tr><tr><td>불변식</td><td>5종 · 256 runs · 128,000 호출 · revert 0</td></tr><tr><td>Python 에이전트</td><td>173건 (mirror/guard 파리티·x402·런타임·라이브 배선·시나리오 랩·LLM 경계·HTTP API)</td></tr><tr><td>Slither</td><td>13건 (High 1 수용 / Medium 1 수용 / Low 9 수용 / Info 2) — 항목별 근거 docs/15_SLITHER_TRIAGE.md</td></tr><tr><td>배포 비용(포크·추정)</td><td>3,777,090 gas ≈ 1.8885 HSK (500 gwei) ≈ $0.15 · 바이트코드 16,666B (EIP-170 한도 내)</td></tr></tbody></table>
+<table><thead><tr><th>항목</th><th>결과</th></tr></thead><tbody><tr><td>Foundry (단위·정책·fuzz·공유 테이블)</td><td>46건 — 현재 74건 전체 통과</td></tr><tr><td>Foundry (메인넷 포크, 실제 라우터·실제 풀)</td><td>5건 — 실스왑으로 이탈을 만들고 그 이탈을 거래</td></tr><tr><td>불변식</td><td>5종 · 256 runs · 128,000 호출 · revert 0</td></tr><tr><td>Python 에이전트</td><td>174건 (mirror/guard 파리티·x402·런타임·라이브 배선·시나리오 랩·LLM 경계·HTTP API)</td></tr><tr><td>Slither</td><td>13건 (High 1 수용 / Medium 1 수용 / Low 9 수용 / Info 2) — 항목별 근거 docs/15_SLITHER_TRIAGE.md</td></tr><tr><td>배포 비용(포크·추정)</td><td>3,777,090 gas ≈ 1.8885 HSK (500 gwei) ≈ $0.15 · 바이트코드 16,666B (EIP-170 한도 내)</td></tr></tbody></table>
 
 <h2>6. 이 리포트를 읽는 법</h2>
 <div class="note">

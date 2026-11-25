@@ -2,7 +2,7 @@
 
 작성 2026-11-25 · 대상 `competitions/hsk-chain-seoul-2026/` · 공개 저장소 `2010180016y-netizen/sentinel-vault-hsk`
 기준선(작업 전): Foundry 69/69 · Python 125/125 · Slither 13건 · **실제 체인에서 돈이 움직이는 경로는 한 번도 끝까지 돌지 않음**
-결과(작업 후): Foundry **74/74** · Python **173/173** · Slither **13건 유지(신규 0)** · **포크 메인넷에서 49개 트랜잭션으로 전 구간 실측 통과**
+결과(작업 후): Foundry **74/74** · Python **174/174** · Slither **13건 유지(신규 0)** · **포크 메인넷에서 49개 트랜잭션으로 전 구간 실측 통과**
 
 > 이 문서는 “무엇을 고쳤다”가 아니라 **무엇이 왜 틀렸고, 어떤 명령으로 확인했는지**를 남긴다.
 > 모든 수치는 이 저장소에서 다시 실행해 재현할 수 있다(§7 명령).
@@ -20,8 +20,8 @@
 | 지표 | 작업 전 | 작업 후 | 근거 |
 |---|---|---|---|
 | Foundry | 69/69 | **74/74** | §7.1 |
-| Python | 125/125 | **173/173** | §7.2 |
-| 체인 end-to-end | 없음(유닛 목만) | **포크 49 tx, 26개 체크 통과** | `evidence/e2e_fork.json` |
+| Python | 125/125 | **174/174** | §7.2 |
+| 체인 end-to-end | 없음(유닛 목만) | **포크 49 tx, 27개 체크 통과** | `evidence/e2e_fork.json` |
 | x402 정산 | paper만 | **실제 `transferWithAuthorization` tx** | `evidence/e2e_fork.json` → `x402` |
 | 왕복 비용(120 USDT) | 126bp로 표기(이중계상) | **65.7bp 실측**(수수료는 견적에 포함) | `evidence/backtest.json` |
 | 인터랙티브 데모 | 정적 카드 6개 | **게이트 추적·시나리오 랩·x402 결제·온체인 대조** | `web/index.html`, `tests/test_api.py` |
@@ -84,12 +84,12 @@ $ python3 scripts/backtest.py                                  → "not enough r
 | **F2** | `SENTINEL_LIVE=1`이 실제 실행기를 바꾸지 않았다 — `SentinelAgent`가 항상 `PaperExecutor`를 만들었다 | 코드 읽기(`core.__init__`) | 운영자가 라이브라고 믿는 동안 페이퍼로 돌아 **모든 실측이 거짓**이 된다 | `settings.live`면 `ChainExecutor` 생성(키·볼트 없으면 fail-closed) | 포크에서 실제 tx 발생 |
 | **F3** | **비용 모델이 수수료를 두 번 세고, 이탈(dislocation)을 비용으로 계산했다.** `2×fee + impact_in + impact_out`인데 견적에는 이미 수수료가 포함; impact는 TWAP 대비라 -381bp 이탈이 “465bp 비용”으로 보였다 | 포크에서 전략이 -381bp 이탈에도 HOLD, `reasons`가 “cost 461bp” | 봇이 **자기가 잡으려는 이탈을 비용으로 지불**해 모든 거래를 거부. 문서의 “왕복 126bp”도 이중계상 | impact를 **현재 spot 대비**로 측정(`market.spot_impact_bps`), 왕복 = `impact_in + impact_out` = **65.7bp** | `tests/test_agent.py::test_round_trip_cost_counts_both_legs`, 백테스트 65.7bp |
 | **F4** | 가드의 `PRICE_IMPACT`가 TWAP 기준이라, 덤프 중 **청산**이 “10000bp 임팩트”로 차단됐다 | `test_live_path`의 SELL이 `PRICE_IMPACT`로 거부 | 위험을 줄이는 거래를 비용 가드가 막는, 볼트에서 이미 고쳤던 것과 같은 함정 | 가드 요청의 benchmark를 spot으로 | `test_live_path::test_live_exit_settles_the_round_trip`, 포크 청산 |
-| **F5** | 가드가 **주문의 견적이 아니라 관측 시점의 cap 견적**을 심사했다 | SELL에서 `quoted_out`(cap) vs `fair_out`(실주문) 불일치 | 실제로 낼 주문과 다른 주문을 검사 → 통과/거부가 둘 다 틀릴 수 있다 | 주문 규모로 재견적한 뒤 그 값으로 가드·정책·minOut 계산 | 포크 SELL 통과, 테스트 173 |
+| **F5** | 가드가 **주문의 견적이 아니라 관측 시점의 cap 견적**을 심사했다 | SELL에서 `quoted_out`(cap) vs `fair_out`(실주문) 불일치 | 실제로 낼 주문과 다른 주문을 검사 → 통과/거부가 둘 다 틀릴 수 있다 | 주문 규모로 재견적한 뒤 그 값으로 가드·정책·minOut 계산 | 포크 SELL 통과, 테스트 174 |
 | **F6** | 백테스트 캐시 키에 **lookback이 없었다.** 40k 결과가 320k 요청에 최대 2분간 서빙되어 “11 bars” | 320k 창이 11 bars를 반환하는 것을 실측 | “전수 조사”를 표방한 백테스트가 실제로는 40k만 본다 | 키에 lookback 포함 + 창을 40k→320k로 확장하며 25바 미만이면 실패 대신 확장 | 백테스트 40 bars/80k window |
 | **F7** | 승률 = 승 / **전체 거래**(미청산 진입 포함) | 코드 읽기 | 열린 포지션을 손실로 세는 숫자 | 승 / 청산 수, `exits` 추가 | 백테스트 MR `hit_rate 1.0` (3 trades/1 exit) |
 | **F8** | 청산 규모를 `fair_out`에서 역산하고, 포지션이 볼트의 청산 상한(800 USDT)을 넘어도 한 번에 팔려 했다. 같은 **단위 오류**가 `observe()`에도 있어 `max_trade_notional`(raw USDT)을 포지션(raw base)과 직접 비교 → 보유 시 청산 견적이 사실상 0으로 잡혀 다리당 비용이 0에 가깝게 보고됐다 | 코드 읽기 + `test_depth` 작성 중 발견 | 견적·정책 판정이 어긋나고, 큰 포지션은 `TradeTooLarge`로 청산 불가. 보유 중 허들이 과소평가 | 포지션 가치(가격×수량)로 상한·notional 계산, `observe`는 cap을 **base 단위로 환산**해 비교 | `test_live_exit...`, `test_depth::test_the_guard_benchmark_is_spot_not_twap`, 포크 |
 | **F9** | 볼트에 **직접 보낸 토큰(기부)** 은 장부에 없는데 매도하면 `_settle`에서 산술 panic(스왑 후) | 코드 읽기 | 실패 사유가 익명 panic, 스왑 후 revert라 진단 불가 | `SellExceedsPosition`을 `_authorise`에서 사전 검사 | `test_Revert_WhenSellExceedsTheBook`, `test_SellEqualToTheBookIsAllowed` |
-| **F10** | tx 해시가 `0x` 없이 장부·응답에 기록됐다 | 포크 x402 검증 실패 | 익스플로러에서 열 수 없는 “증거” | `hex_hash()`로 정규화(executor·facilitator) | 포크 x402 tx `0x23d8…` |
+| **F10** | tx 해시가 `0x` 없이 장부·응답에 기록됐다 | 포크 x402 검증 실패 | 익스플로러에서 열 수 없는 “증거” | `hex_hash()`로 정규화(executor·facilitator) | 포크 x402 tx `evidence/e2e_fork.md` |
 | **F11** | 데모 결제가 **자기 서버에 요청하면서 락을 쥐고 있었다** | 코드 읽기(`_lock` + self-request) | 대시보드가 결제 버튼에서 영구 정지 | 해당 엔드포인트는 락 밖에서 실행, `get_agent`는 별도 init 락 | `tests/test_api.py` |
 
 ### 2.2 실제 작동성·데모 (D)
@@ -101,8 +101,8 @@ $ python3 scripts/backtest.py                                  → "not enough r
 | **D3** | LLM이 어디에도 없다 — Track 1이 “AI Agent”인데 키워드 라우터뿐 | “AI가 어디 있나” 질문에 답이 없다 | 서술 계층 + **숫자 검증**(사실에 없는 수는 폐기) + **제안 심사**(LLM 제안을 정책·가드로 판정) | `tests/test_narrator.py` 15개 |
 | **D4** | x402 정산이 paper 고정, `ChainFacilitator`는 한 번도 실행되지 않음 | “결제 통합”이 형식적 | 로컬 체인에서 실제 `transferWithAuthorization` 정산 + nonce 온체인 확인 | 포크 x402, gas 65,840 |
 | **D5** | ERC-8004는 격리 테스트만, **살아있는 볼트·에이전트 조합**에서 검증된 적 없음 | 평판·검증이 “볼트 기록에서 온다”는 주장 미검증 | 포크에서 신원 등록→검증 요청→어댑터 응답 100→평판 36144를 볼트 값과 대조 | `evidence/e2e_fork.md` |
-| **D6** | 에이전트가 체인에 대해 끝까지 도는 경로가 없다(모든 라이브 테스트가 fake) | F1·F5를 못 잡은 근본 원인 | `scripts/fork_demo.py` — 실제 에이전트·실제 라우터·실제 오라클 | 49 tx / 26 checks |
-| **D7** | 전략이 **cap 크기로만** 견적해, 실제로 낼 크기(conviction 축소)의 비용을 모른다 | 얇은 풀에서 통과/거부가 모두 틀린다 | depth-aware sizing: 실제 크기로 재견적, 비용이 안 맞으면 크기를 줄이고, 그래도 안 되면 HOLD | 포크 50.91 USDT 진입 |
+| **D6** | 에이전트가 체인에 대해 끝까지 도는 경로가 없다(모든 라이브 테스트가 fake) | F1·F5를 못 잡은 근본 원인 | `scripts/fork_demo.py` — 실제 에이전트·실제 라우터·실제 오라클 | 49 tx / 27 checks |
+| **D7** | 전략이 **cap 크기로만** 견적해, 실제로 낼 크기(conviction 축소)의 비용을 모른다 | 얇은 풀에서 통과/거부가 모두 틀린다 | depth-aware sizing: 실제 크기로 재견적, 비용이 안 맞으면 크기를 줄이고, 그래도 안 되면 HOLD | 포크 ≈51.7 USDT 진입 |
 | **D8** | CI 없음 — “테스트 통과”가 커밋마다 증명되지 않는다 | 성숙도 신호 | `ci/ci.yml` (contracts / agent / fork) — 연결된 GitHub App에 `workflows` 권한이 없어 `.github/workflows/`에 올릴 수 없다. 저장소에서 Actions를 켠 뒤 복사하면 된다 | 워크플로 파일 |
 
 ### 2.3 증거·문서 (E)
@@ -110,7 +110,7 @@ $ python3 scripts/backtest.py                                  → "not enough r
 | # | 결함 | 조치 |
 |---|---|---|
 | **E1** | “왕복 126bp” — 수수료 이중계상(F3). “146bp = 126 + 20”이라는 설명도 성립하지 않는다 | 65.7bp로 정정하고, 정책 하한 146bp는 **비용 + 80bp 마진**으로 정직하게 표기 |
-| **E2** | “69/69, 125/125” 등 테스트 수치가 이후 추가분과 불일치 | 74/173으로 전면 갱신 |
+| **E2** | “69/69, 125/125” 등 테스트 수치가 이후 추가분과 불일치 | 74/174로 전면 갱신 |
 | **E3** | 배포 가스 3,802,309 / 1.90 HSK — 코드 변경 후 재측정 필요 | 포크 실측 3,777,090 / **1.8885 HSK**(500.001 gwei), `deploy.py` 추정 3,827,004 → 1.9138 HSK / 배포 16,666B(init 18,785B) |
 | **E4** | Slither 13건이 마지막 코드 변경을 반영하지 않음 | 2026-11-25 재실행, 13건 유지(High 1/Medium 1/Low 9/Info 2) + 목 토큰 3건 테스트 전용 명시 |
 | **E5** | 제출 문서가 “공개 저장소 push 완료”인데 CI·데모·실측 문서가 없다 | 본 문서 + `docs/50_DEMO.md` + CI + 재현 명령 |
@@ -178,7 +178,7 @@ $ python3 scripts/backtest.py                                  → "not enough r
 | `agent/lab.py` | 시나리오 1개를 전략→정책→가드로 판정, 게이트·한도·실제값 반환 | 계약과 같은 게이트 순서, 첫 실패에서 멈춤, 결정론 |
 | `agent/narrator.py` | LLM 서술·제안 계층 | 사실에 없는 숫자는 폐기, 제안은 정책·가드가 거부, 결정 불변 |
 | `src/mocks/MockEIP3009.sol` | EIP-3009 목 토큰(6dp, `transferWithAuthorization`, `authorizationState`) | Python 서명과 온체인 ECDSA 검증 일치 |
-| `scripts/fork_demo.py` | 포크 end-to-end 오케스트레이터(배포·이탈·거부·진입·청산·8004·x402) | 26개 체크, 49 tx, loopback assert |
+| `scripts/fork_demo.py` | 포크 end-to-end 오케스트레이터(배포·이탈·거부·진입·청산·8004·x402) | 27개 체크, 49 tx, loopback assert |
 | `tests/test_lab.py` | 랩 경계 11개 | 오버사이즈·낙폭·킬스위치·청산 예외 |
 | `tests/test_narrator.py` | LLM 경계 15개 | 999bp 폐기, 500 USDT 거부, flat SELL 거부 |
 | `tests/test_api.py` | 대시보드 API 10개 | 실제 HTTP, 실제 에이전트 |
@@ -207,7 +207,7 @@ $ python3 scripts/backtest.py                                  → "not enough r
 | 기준 | 주장 | 증거 | 판정 |
 |---|---|---|---|
 | **독창성** | 전략 사전등록 + 선언/실현 엣지 온체인 대조 + 거부의 증거 | `SentinelVault` 상단 주석, `EdgeClaimAboveDislocation`, `recordNoTrade`, `edgeCredibilityBps` | 충족 |
-| **기술 완성도** | 4개 표준이 실제 코드, 173+74 테스트, CI | `docs/12_OSS_INTEGRATION.md`, `ci.yml` | 충족 |
+| **기술 완성도** | 4개 표준이 실제 코드, 174+74 테스트, CI | `docs/12_OSS_INTEGRATION.md`, `ci/ci.yml` | 충족 |
 | **실제 작동성** | 배포→거래→청산→평판→결제가 한 번에 | `evidence/e2e_fork.md` 49 tx | 충족(포크) / **메인넷 배포는 미완**(가스 지출 금지 지시) |
 | **보안** | 이중서명·TWAP·사후검증·불변식·Slither 트리아지 | `test/`, `evidence/slither-2026-11-25-*` | 충족, High 1건 구조적 수용(근거 문서화) |
 | **AI 정합성** | LLM이 숫자를 만들지 않는다 | `tests/test_narrator.py`, `/api/narrate` | 충족 |
@@ -246,10 +246,10 @@ Ran 1 test suite: 5 tests passed, 0 failed, 0 skipped (5 total)
 
 ```
 $ python3 -m pytest tests/ -q
-173 passed, 1 warning in 11.09s
+174 passed, 1 warning in 12.9s
 ```
 
-내역: 기존 125 + `test_lab` 11 + `test_narrator` 15 + `test_api` 10 + `test_live_guards` 6 + `test_depth` 6.
+내역: 기존 125 + `test_lab` 11 + `test_narrator` 15 + `test_api` 11 + `test_live_guards` 6 + `test_depth` 6.
 
 ### 7.3 포크 end-to-end (핵심 증거)
 
@@ -260,13 +260,14 @@ deploy SentinelVault            3,777,090 gas
 deploy Identity/Reputation/Validation/Adapter
 whale sells 6,000 WHSK × 17 → dislocation 381bp (real router, real pool)
 default strategy  → HOLD (adverse trend) → recordNoTrade tx
-dislocation strat → BUY 50.907559 USDT, claim 166bp (hurdle 146bp) → executeIntent tx
+대화("1회 한도 500") → 거부, 실제 온체인 한도 200 안내 (전략 파라미터 불변)
+dislocation strat → BUY ≈51.7 USDT, claim 166bp (hurdle 146bp) → executeIntent tx
 whale buys 1,500 USDT × 9 → +275bp
 agent             → SELL, realised 601.0bp → executeIntent tx
 ERC-8004          → validation response 100, reputation 36144 (= vault.edgeCredibilityBps())
 reconcile         → ledger vs vault: 4/4 rows match
 x402              → 0.001 USDT transferWithAuthorization, gas 65,840, nonce consumed on-chain
-26 checks passed · 49 transactions · evidence/e2e_fork.json, .md
+27 checks passed · 49 transactions · evidence/e2e_fork.json, .md
 ```
 
 **정직한 해석**: +601bp는 알파가 아니다. 우리가 고래 매수로 풀을 +275bp까지 되돌린 **시나리오**다.
@@ -330,7 +331,7 @@ $ git status --short                              → 커밋 대상만
 |---|---|---|
 | 왕복 126bp = 2×30 + 33 + 33 | **65.7bp** = 33.0 + 32.7 (수수료 포함) | README·아키텍처·리포트 정정 |
 | 허들 146bp = 126 + 20 | 146bp = 65.7 + **80bp 마진**(의도적 보수) | 설명 교체 |
-| Foundry 69 / Python 125 | 74 / 173 | 전면 갱신 |
+| Foundry 69 / Python 125 | 74 / 174 | 전면 갱신 |
 | 배포 3,802,309 gas / 1.90 HSK | **3,777,090 / 1.8885 HSK** / 16,666B | 갱신 |
 | “35 기록 바, 거래 0건” | **40 바 / 80k 창, 거래 0건 / 거부 20건** | 갱신 |
 | x402 “paper 정산” | paper **또는 chain**(포크 실정산) | 문서·코드 갱신 |

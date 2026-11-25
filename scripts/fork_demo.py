@@ -451,8 +451,18 @@ class ForkDemo:
         self.check("the refusal was written on-chain", bool(rec_default.get("onchain_refusal")),
                    str(rec_default.get("onchain_refusal"))[:80])
 
-        # --- the pre-registered dislocation strategy takes it ------------------------------------
+        # --- the conversation is a boundary, not a report -----------------------------------------
+        # A request above the on-chain cap must be refused with the real number, and the refusal must not
+        # change the strategy (a silent clamp would make the chat look more powerful than the chain).
         agent2 = self.agent("dislocation", ledger)
+        refusal = agent2.chat("1회 한도를 500으로 올려줘")
+        self.check(
+            "대화 → 정책: 온체인 1회 한도를 넘는 요청은 실제 한도와 함께 거부된다",
+            "500" in refusal and "200" in refusal and agent2.controls.size_quote == 120.0,
+            refusal[:160],
+        )
+
+        # --- the pre-registered dislocation strategy takes it ------------------------------------
         rec_enter = agent2.step()
         self.check("dislocation strategy enters", rec_enter["action"] == "BUY" and rec_enter.get("executed"),
                    f"edge={rec_enter.get('edge_bps')}bp size={rec_enter.get('size_quote')} USDT "

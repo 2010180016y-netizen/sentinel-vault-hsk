@@ -10,6 +10,7 @@ import os
 import sys
 import threading
 import urllib.error
+import urllib.parse
 import urllib.request
 from http.server import ThreadingHTTPServer
 
@@ -83,6 +84,16 @@ def test_presets_and_catalog(live_server):
     assert "sentinel-hsk" in c["plugin"]
     assert "market" in c["providers"]
     assert any(a["name"] == "TRADE_ONCE" for a in c["actions"])
+
+
+def test_chat_refuses_what_only_the_owner_key_can_move(live_server):
+    refused = get(live_server, "/api/ask?q=" + urllib.parse.quote("1회 한도를 500으로 올려줘"))["answer"]
+    assert "500" in refused and "200" in refused
+    state = get(live_server, "/api/state")
+    assert state["controls"]["size_quote"] == 120.0, "a refused request must not move the agent either"
+    moved = get(live_server, "/api/ask?q=" + urllib.parse.quote("리스크 낮춰"))["answer"]
+    assert "low" in moved or "낮" in moved
+    assert "strategyHash" in moved, "the reply says the new hash must be registered before it can trade"
 
 
 def test_narrate_returns_the_deterministic_sentence_without_a_model(live_server):

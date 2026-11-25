@@ -6,8 +6,8 @@
 |---|---|
 | 트랙 | **Track 1 — AI Agent Trading** 확정 |
 | 컨트랙트 | `SentinelVault` + `SwapGuardLib` + ERC-8004 레지스트리·어댑터 + EIP-3009 목 토큰, **74/74** 테스트(포크 실거래 5건 포함) |
-| 에이전트 | Python 코어 + elizaOS형 런타임 + x402(paper/chain) + 가드 + 시나리오 랩 + LLM 계층, **173/173** |
-| 포크 end-to-end | **49 tx · 26 checks** (`evidence/e2e_fork.md`) — 배포→거래→청산→평판→x402 실정산→장부 대조 |
+| 에이전트 | Python 코어 + elizaOS형 런타임 + x402(paper/chain) + 가드 + 시나리오 랩 + LLM 계층, **174/174** |
+| 포크 end-to-end | **49 tx · 27 checks** (`evidence/e2e_fork.md`) — 배포→거래→청산→평판→x402 실정산→장부 대조 |
 | 오픈소스 통합 | elizaOS·uniswap-ai·x402·ERC-8004 코드 반영 (`docs/12_OSS_INTEGRATION.md`) |
 | 감사 | Slither **13건**(High 1 / Medium 1 / Low 9 / Info 2) + 목 토큰 3(테스트 전용), `docs/15_SLITHER_TRIAGE.md` |
 | CI | `ci/ci.yml` (contracts / agent / fork) |
@@ -69,7 +69,7 @@
 |---|---|---|
 | 0-12 | `python3 scripts/backtest.py` 상단 | “HSKSwap 0.3% 풀, 왕복 실측 65.7bp입니다. 오늘 관측된 최대 이탈은 130bp — 허들 146bp를 못 넘습니다. 기록 바 40개에서 거래 0건, 거부 20건. 이 시장에서 테이커의 정답은 대부분 ‘거래하지 않는다’입니다.” |
 | 12-30 | 대시보드 Scenario lab: 덤프 프리셋 → 이탈 매수 전략 | “같은 게이트를 손으로 돌려봅니다. -400bp 덤프에서 기본 전략은 역추세로 거부하지만, 체인은 그 주문을 허용합니다. 별도로 사전등록한 이탈 매수 전략은 61 USDT를 주장 166bp로 진입합니다. 1회 400을 요청하면 체인이 `TRADE_TOO_LARGE`로 거부합니다.” |
-| 30-55 | `python3 scripts/fork_demo.py` 실행 중 | “메인넷 포크입니다. 실제 라우터로 풀을 381bp 밀었고, 기본 전략의 거부가 온체인 트랜잭션으로 남았습니다. 이탈 매수 전략이 50.91 USDT를 샀고, 풀을 되돌린 뒤 청산에서 600bp가 정산됐습니다. ERC-8004 어댑터가 볼트의 신뢰도 36,144를 그대로 평판으로 올렸습니다.” |
+| 30-55 | `python3 scripts/fork_demo.py` 실행 중 | “메인넷 포크입니다. 실제 라우터로 풀을 381bp 밀었고, 기본 전략의 거부가 온체인 트랜잭션으로 남았습니다. 이탈 매수 전략이 ≈51.7 USDT를 샀고, 풀을 되돌린 뒤 청산에서 600bp가 정산됐습니다. ERC-8004 어댑터가 볼트의 신뢰도 36,144를 그대로 평판으로 올렸습니다.” |
 | 55-72 | x402 카드 / `evidence/e2e_fork.md` | “프리미엄 리스크 피드는 x402로 0.001 USDT를 받습니다. 포크에서는 실제 `transferWithAuthorization` tx로 정산되고 nonce가 온체인에서 소진됩니다.” |
 | 72-90 | `forge test` 요약 + 불변식 표 | “에이전트 키가 뚫려도 자금은 못 나갑니다. 인출 불가, 리스크 서명 없이는 실행 불가. 128,000회 무작위 호출로 5개 불변식을 검증했고, 장부와 볼트는 4/4로 일치합니다.” |
 
@@ -94,7 +94,7 @@ cd competitions/hsk-chain-seoul-2026
 export PATH="$HOME/.foundry/bin:$PATH"
 forge test --no-match-path 'test/SentinelVault.fork.t.sol'   # 69
 forge test                                                   # 74 (포크 포함, 네트워크)
-python3 -m pytest tests/ -q                                  # 173
+python3 -m pytest tests/ -q                                  # 174
 python3 scripts/backtest.py                                  # 거래 0 / 거부 20 / 합성 패널
 python3 scripts/fork_demo.py                                 # 49 tx end-to-end (~2.5분)
 python3 -m agent.server --port 8765                          # 대시보드

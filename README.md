@@ -32,7 +32,7 @@ python3 scripts/fork_demo.py
 It starts an anvil fork of HSK mainnet and runs **49 real transactions**: deploy the vault and the
 three ERC-8004 registries, create a real 381bp dislocation with a whale selling through the real
 router, watch the default strategy *refuse* and write its refusal on-chain, let a separately
-pre-registered dislocation strategy enter (50.91 USDT, 166bp claim), push the pool back and exit
+pre-registered dislocation strategy enter (≈51.7 USDT, 166bp claim), push the pool back and exit
 (601.0bp round trip), attest the vault's record through ERC-8004, settle a 0.001 USDT x402 payment
 with a real `transferWithAuthorization`, and reconcile the agent's ledger against `vault.stats()`
 (4/4 rows). Evidence: [`evidence/e2e_fork.md`](evidence/e2e_fork.md).
@@ -97,7 +97,7 @@ no-trade is written down like any other decision.
 | Edge hurdle (policy floor) | **146 bp** = 65.7 measured + ~80bp deliberate margin | `RiskPolicy.min_edge_bps`, `docs/30_ARCHITECTURE.md` §3 |
 | Largest observed dislocation | ≈ **130 bp** — below the hurdle | recorded trade bars |
 | Agent trades on the real venue | **0** (correctly refused, 20 refusals recorded) | `scripts/backtest.py` (40 bars, 80k-block window) |
-| Fork run: dislocation created / entry / claim / exit | **381bp / 50.91 USDT / 166bp / 601.0bp** | `scripts/fork_demo.py` |
+| Fork run: dislocation created / entry / claim / exit | **381bp / ≈51.7 USDT / 166bp / ≈601bp** | `scripts/fork_demo.py` |
 | Vault record after that run | 2 trades, `declaredEdgeSumBps` 166, `realizedEdgeSumBps` 600, `edgeCredibilityBps` 36,144, `avgExecutionEdgeBps` +297 | `vault.stats()` |
 | x402 settlement on the fork | real `transferWithAuthorization`, gas **65,840**, nonce consumed | `evidence/e2e_fork.json` |
 | Deployment cost | 3,777,090 gas measured on the fork → **1.8885 HSK** (500 gwei, ≈ $0.15); `deploy.py` estimate 3,827,004 → 1.9138. Deployed bytecode 16,666B (init 18,785B with args) | `forge` receipt / `scripts/deploy.py` |
@@ -137,7 +137,7 @@ agent/x402/ + agent/premium.py     x402 v2 paywall: EIP-3009 verification, singl
 agent/server.py + web/index.html   conversational dashboard (stdlib HTTP, no build step)
 scripts/                           deploy (cost estimate first), backtest, paper runner, live runner, report,
                                    key generation, and fork_demo.py (the end-to-end run)
-tests/                             173 agent tests, incl. mirror/guard parity, x402 round trip, runtime,
+tests/                             174 agent tests, incl. mirror/guard parity, x402 round trip, runtime,
                                    live wiring, scenario lab, narrator, HTTP API
 docs/                              facts, OSS research, expert panels, architecture, slither triage,
                                    the 7-step audit, the demo script, submission
@@ -152,7 +152,7 @@ export PATH="$HOME/.foundry/bin:$PATH"
 
 forge test --no-match-path 'test/SentinelVault.fork.t.sol'   # 69 tests (no network)
 forge test                                                   # 74 incl. mainnet-fork integration
-python3 -m pytest tests/ -q                                  # 173 agent tests
+python3 -m pytest tests/ -q                                  # 174 agent tests
 python3 scripts/backtest.py                                  # real bars + labelled synthetic panels
 python3 scripts/fork_demo.py                                 # 49-tx end-to-end on an HSK fork
 python3 scripts/run_paper.py --cycles 3

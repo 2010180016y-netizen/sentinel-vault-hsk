@@ -16,8 +16,8 @@ ERC-8004 평판→x402 실정산까지 통과하고, 에이전트 장부와 볼�
 | 항목 | 값 |
 |---|---|
 | Foundry | **74/74** (단위·정책·fuzz 46 + 불변식 5 + 스왑 가드 4 + ERC-8004 17 + 메인넷 포크 5) |
-| Python | **173/173** |
-| 포크 end-to-end | **49 tx · 26 checks** — `evidence/e2e_fork.md` |
+| Python | **174/174** |
+| 포크 end-to-end | **49 tx · 27 checks** — `evidence/e2e_fork.md` |
 | Slither | **13** (High 1 / Medium 1 / Low 9 / Info 2) + 테스트 전용 목 토큰 3 |
 | 왕복 비용 | **65.7bp** (33.0 + 32.7, 수수료 포함) · 정책 하한 146bp |
 | 배포 | 3,777,090 gas / **1.8885 HSK** / 16,666B |
@@ -78,9 +78,9 @@ ERC-8004 평판→x402 실정산까지 통과하고, 에이전트 장부와 볼�
 | 실제 기록 바 백테스트 | 40바(80k 블록) · **거래 0 / 거부 20** | `evidence/backtest.json` |
 | 합성 평균회귀 | 3건(2 진입/1 청산) · +4.33 USDT · 선언 358 → 실현 442 (신뢰도 12,346bp) | SYNTHETIC |
 | 합성 하락추세 | **0건** (역추세 차단) | SYNTHETIC |
-| 포크 실행 | 이탈 **381bp** → 진입 50.91 USDT(주장 166bp) → 청산 **실현 601.0bp** | `evidence/e2e_fork.md` |
+| 포크 실행 | 이탈 **381bp** → 진입 ≈51.7 USDT(주장 166bp) → 청산 **실현 601.0bp** | `evidence/e2e_fork.md` |
 | 포크 볼트 기록 | 거래 2 · 선언 166 → 실현 600 · 신뢰도 **36,144bp** · 다리당 +297bp | `vault.stats()` |
-| x402 | 0.001 USDT 실정산 · tx `0x23d8…` · gas 65,840 · nonce 소진 | `evidence/e2e_fork.json` |
+| x402 | 0.001 USDT 실정산 · tx `evidence/e2e_fork.md` · gas 65,840 · nonce 소진 | `evidence/e2e_fork.json` |
 | 배포 | 16,666B / 3,777,090 gas / **1.8885 HSK** ≈ $0.15 | `forge` 수신증 |
 
 > 포크의 +601bp는 우리가 만든 반등이다. 증명하는 것은 수익성이 아니라 **연결**이다.

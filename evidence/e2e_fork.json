@@ -1,8 +1,8 @@
 {
- "generated_at": 1795587223,
+ "generated_at": 1795587764,
  "environment": {
   "chain_id": 177,
-  "rpc": "http://127.0.0.1:41071",
+  "rpc": "http://127.0.0.1:39883",
   "fork_of": "https://mainnet.hsk.xyz",
   "twap_window_s": 600,
   "pool": "0x4ff515761864e7838B0AdB8b5b2B8B7A068905dC",
@@ -30,36 +30,36 @@
    "decision": "BUY",
    "edge_bps": 166.48,
    "hurdle_bps": 146.0,
-   "size_quote": 50.907559,
-   "amount_out": 652972164575326718160,
-   "leg_edge_bps": 351.6,
-   "tx": "0x652aad507f99e5e3f924c449bedf875e40357b0728c39d9537bef2cee7c39ee6"
+   "size_quote": 51.708177,
+   "amount_out": 663240102953806772489,
+   "leg_edge_bps": 351.5,
+   "tx": "0x63831b5968ec40a490f4cc2356bc3e70b4931a47db661cdb9c1f771e53b61b7b"
   },
   "exit": {
    "decision": "SELL",
    "realised_edge_bps": 601.0,
    "leg_edge_bps": 247.1,
-   "tx": "0x85744e532416981bdddcca471398d6373f18de2750f4abc7a1ba1c24a720cc53"
+   "tx": "0xac4143d647f6a73100e1ba8a96dabc94aec849ed46e595848640fd45984442f8"
   },
   "default_strategy_refusal": {
    "action": "HOLD",
    "reasons": [
-    "adverse trend -188bp vs bar vol 30bp: mean reversion disarmed"
+    "adverse trend -188bp vs bar vol 31bp: mean reversion disarmed"
    ],
-   "onchain_tx": "0xd8a21e1d592ea0161c92bc3dec33020850b1845321bff25ca585774d3a800942"
+   "onchain_tx": "0x746f6ef4d52c60369a82aa67ff6355c0998905d24beed7423cbaa4547aac5159"
   }
  },
  "vault_stats": {
   "tradeCount": 2,
   "winCount": 1,
-  "realizedPnlQuote": 3059353,
-  "feesPaidQuote": 310718,
+  "realizedPnlQuote": 3107457,
+  "feesPaidQuote": 315621,
   "declaredEdgeSumBps": 166,
   "realizedEdgeSumBps": 600,
-  "equity": 1003059353,
-  "highWater": 1003059353,
+  "equity": 1003107457,
+  "highWater": 1003107457,
   "oracleHealthy": true,
-  "executionEdgeSumBps": 595,
+  "executionEdgeSumBps": 594,
   "edgeCredibilityBps": 36144,
   "avgExecutionEdgeBps": 297
  },
@@ -113,15 +113,15 @@
    "address": "0x38a024C0b412B9d1db8BC398140D00F5Af3093D4",
    "trade_count": 2,
    "win_count": 1,
-   "realised_pnl_quote": 3059353,
-   "fees_paid_quote": 310718,
+   "realised_pnl_quote": 3107457,
+   "fees_paid_quote": 315621,
    "declared_edge_sum_bps": 166,
    "realised_edge_sum_bps": 600,
-   "equity": 1003059353,
-   "high_water": 1003059353,
-   "daily_notional": 50907559,
+   "equity": 1003107457,
+   "high_water": 1003107457,
+   "daily_notional": 51708177,
    "oracle_healthy": true,
-   "execution_edge_sum_bps": 595,
+   "execution_edge_sum_bps": 594,
    "edge_credibility_bps": 36144,
    "avg_execution_edge_bps": 297,
    "paused": false
@@ -364,66 +364,66 @@
   {
    "step": "whale buys with 1,500 USDT",
    "tx": "a2d19bd937da4600490bcb115f4d601ab1e1b933578e1db29af70465d482b14b",
-   "gas_used": 108912,
+   "gas_used": 108938,
    "status": 1
   },
   {
    "step": "whale buys with 1,500 USDT",
-   "tx": "9614cdbc08ec1b6c0226573a18dc4217922b4cb9a55c5fb45591f3989d72eb80",
+   "tx": "39de06ce062523d8058a7f7a57f42c9140587c275cdf10912d260b7ba84fbbb0",
    "gas_used": 108936,
    "status": 1
   },
   {
    "step": "whale buys with 1,500 USDT",
-   "tx": "c9c89e7f5b0107c886dac5cdaaed07be6576fd7253f6d94a11e0d0600e1b044a",
+   "tx": "81c22bec84a214ee4e18e13699c53519c77bf2b62e849cd08e608b29eaa70ee7",
    "gas_used": 138960,
    "status": 1
   },
   {
    "step": "whale buys with 1,500 USDT",
-   "tx": "f39a4cf7fb6a93c9f989e75d081cb9e6f00343dc61c73303c2c8c8f7102be211",
+   "tx": "41d691d135d839f0b691359e085805cd03b15c1e4fdec113d06cf5195880c157",
    "gas_used": 108946,
    "status": 1
   },
   {
    "step": "whale buys with 1,500 USDT",
-   "tx": "e397f92e25eefd0761a59caf4f8a747085d122613b5c026d6b41cd5e7ef02196",
+   "tx": "1b3e74aeaa6bd2d7ba042503d21b0ac3c7a397e1e67aefe8a9201424f0eedd62",
    "gas_used": 108958,
    "status": 1
   },
   {
    "step": "whale buys with 1,500 USDT",
-   "tx": "c948b34dbba0534904ae2b88f26302e9fb21c44d65d606b8ccf87a17fb9a5018",
+   "tx": "cb5c8de7bc740aadd909f4f6a09bd0d657d3e500597c95d08ad0de939e7e8bf4",
    "gas_used": 108948,
    "status": 1
   },
   {
    "step": "IdentityRegistry.register (agent #1)",
-   "tx": "00873ea6623eebef9762fbe4bd49f2a6196398d07d8791a19504e3d21ddb2e35",
+   "tx": "52d0420cb74007387ff7fcc8a269ea843a526d0e6486a85a86d36d79c473bb94",
    "gas_used": 681018,
    "status": 1
   },
   {
    "step": "adapter.setAgent",
-   "tx": "67a55e8f4a0d829337f17aa93127027de3a53fd489dd2e0531346fe8cc835089",
+   "tx": "c6a7f1ada31a1a4d47f59d4e262dd9b7da507689f315b6fcfa312e4830a6b23a",
    "gas_used": 46978,
    "status": 1
   },
   {
    "step": "validationRequest (evidence commitment)",
-   "tx": "6db0e46722360649d056c6528cdae361f929a28e2251684a93bf9c97f951bb6b",
+   "tx": "ea32d899ecc87e0f1d984e5d433a75a974047d8dafd9d8ee40b0736841a5c91a",
    "gas_used": 180411,
    "status": 1
   },
   {
    "step": "adapter.validate (from vault.stats)",
-   "tx": "f697a8b771189966b39264c73cda848470303410053ceaa2b8e00a16e12634c9",
+   "tx": "e53c8f92aa516585dc00b44dcbaaa3c6eb96f3bd3c263792d841448061bba7bb",
    "gas_used": 173570,
    "status": 1
   },
   {
    "step": "adapter.attest (reputation from vault.stats)",
-   "tx": "8b2f1ab66533c5e475800f6d41cdb2829269168d8578f1ac8fe299626d08a76a",
+   "tx": "345fd83e7f45aa6d09431104d1db7e394025052dddc1affb4f1f60ae319e725e",
    "gas_used": 344755,
    "status": 1
   }
@@ -457,17 +457,22 @@
   {
    "check": "default strategy refuses the dump (adverse trend)",
    "ok": true,
-   "detail": "adverse trend -188bp vs bar vol 30bp: mean reversion disarmed"
+   "detail": "adverse trend -188bp vs bar vol 31bp: mean reversion disarmed"
   },
   {
    "check": "the refusal was written on-chain",
    "ok": true,
-   "detail": "0xd8a21e1d592ea0161c92bc3dec33020850b1845321bff25ca585774d3a800942"
+   "detail": "0x746f6ef4d52c60369a82aa67ff6355c0998905d24beed7423cbaa4547aac5159"
+  },
+  {
+   "check": "대화 → 정책: 온체인 1회 한도를 넘는 요청은 실제 한도와 함께 거부된다",
+   "ok": true,
+   "detail": "⛔ 요청한 500 USDT는 온체인 1회 한도 200 USDT를 넘습니다. 이 한도는 소유자 키의 정책(정책 교체 트랜잭션)으로만 바뀌고, 대화로는 바꿀 수 없습니다."
   },
   {
    "check": "dislocation strategy enters",
    "ok": true,
-   "detail": "edge=166.48bp size=50.907559 USDT reasons=spot 370bp below TWAP, reversion edge 166bp > hurdle 146bp"
+   "detail": "edge=166.48bp size=51.708177 USDT reasons=spot 370bp below TWAP, reversion edge 166bp > hurdle 146bp"
   },
   {
    "check": "vault tradeCount = 1",
@@ -487,17 +492,17 @@
   {
    "check": "position booked equals the fill",
    "ok": true,
-   "detail": "qty=652972164575326718160"
+   "detail": "qty=663240102953806772489"
   },
   {
    "check": "the agent's own ledger holds the position",
    "ok": true,
-   "detail": "ledger_qty=652972164575326718160 keys=['0xB210D2120d57b758EE163cFfb43e73728c471Cf1']"
+   "detail": "ledger_qty=663240102953806772489 keys=['0xB210D2120d57b758EE163cFfb43e73728c471Cf1']"
   },
   {
    "check": "agent exits after the reversion",
    "ok": true,
-   "detail": "action=SELL realised=601.0bp edge=191.18/146.0 reasons=spot above TWAP (+279bp, RSI 0) -> take profit policy=OK guards=OK"
+   "detail": "action=SELL realised=601.0bp edge=191.23/146.0 reasons=spot above TWAP (+279bp, RSI 0) -> take profit policy=OK guards=OK"
   },
   {
    "check": "vault tradeCount = 2",
@@ -527,12 +532,12 @@
   {
    "check": "x402: the agent's payment settled on-chain",
    "ok": true,
-   "detail": "status=200 settlement={'success': True, 'transaction': '0x23d80589d5096ed0832057682a96ef3d3c44dd46688eae93ccd3cd28420a1934', 'network': 'eip155:177', 'payer': '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'} error="
+   "detail": "status=200 settlement={'success': True, 'transaction': '0xd44fce5ccdbc33531aa6899d557899d915b6ddf0336caf7911df770fe2114c5a', 'network': 'eip155:177', 'payer': '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'} error="
   },
   {
    "check": "x402: settlement returned a real transaction hash",
    "ok": true,
-   "detail": "0x23d80589d5096ed0832057682a96ef3d3c44dd46688eae93ccd3cd28420a1934"
+   "detail": "0xd44fce5ccdbc33531aa6899d557899d915b6ddf0336caf7911df770fe2114c5a"
   },
   {
    "check": "x402: the settlement transaction succeeded",
@@ -547,7 +552,7 @@
   {
    "check": "x402: authorizationState[nonce] is true",
    "ok": true,
-   "detail": "nonce=0x00dd42d94cbb84d6…"
+   "detail": "nonce=0x12434dd97308228f…"
   },
   {
    "check": "x402: the payee received exactly 0.001 USDT",
@@ -566,9 +571,9 @@
   "payer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
   "payee": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
   "settlement_mode": "chain",
-  "tx": "0x23d80589d5096ed0832057682a96ef3d3c44dd46688eae93ccd3cd28420a1934",
+  "tx": "0xd44fce5ccdbc33531aa6899d557899d915b6ddf0336caf7911df770fe2114c5a",
   "gas_used": 65840,
-  "nonce": "0x00dd42d94cbb84d6c8a1888b7da55c74916f5310e3ff30ef8fc60428361143ff",
+  "nonce": "0x12434dd97308228f5e3ba992f594f8d90e1738e263f455ae9981c7896a02fa17",
   "authorization_state": true,
   "payee_balance": 10001000,
   "premium_resource": "/api/premium/edge"

@@ -22,7 +22,7 @@ from agent.core import SentinelAgent  # noqa: E402
 from agent.ledger import Ledger  # noqa: E402
 
 KST = timezone(timedelta(hours=9))
-PY_TESTS = 173
+PY_TESTS = 174
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
